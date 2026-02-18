@@ -51,7 +51,7 @@ input{padding:10px;margin:10px;font-size:16px;}
 </div>
 
 <script>
-const API="http://localhost:3000";
+const API="https://pigeon-system.onrender.com";
 let workerName="";
 
 /* LOGIN */
@@ -70,18 +70,20 @@ password:document.getElementById("pin").value
 
 if(data.status==="ok"){
 
+
+alert("Invalid login");
+}
+
+
 workerName=data.name;
 
 localStorage.setItem("workerId",data.id);
 localStorage.setItem("workerName",data.name);
-
 document.getElementById("loginBox").style.display="none";
 document.getElementById("panel").style.display="block";
 document.getElementById("welcome").innerText="Welcome "+workerName;
 
-}else{
-alert("Invalid login");
-}
+
 
 })
 .catch(err=>{

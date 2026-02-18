@@ -10,3 +10,25 @@ return "Monitor condition";
 }
 
 module.exports=checkHealth;
+
+function checkHealth(issue, weather){
+
+if(issue.toLowerCase().includes("weak"))
+return "Isolate pigeon and monitor feeding.";
+
+if(issue.toLowerCase().includes("not eating"))
+return "Check beak and throat for infection.";
+
+if(issue.toLowerCase().includes("injury"))
+return "Clean wound and separate pigeon.";
+
+if(weather==="hot")
+return "Ensure extra water is provided.";
+
+if(weather==="cold")
+return "Increase feed slightly.";
+
+return "Monitor pigeon closely.";
+}
+
+module.exports = checkHealth;

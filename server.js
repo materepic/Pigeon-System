@@ -61,24 +61,30 @@ app.post("/login",(req,res)=>{
 
 const {username,password}=req.body;
 
-db.get(
-"SELECT * FROM workers WHERE name=? AND pin=?",
-[username,password],
-(err,row)=>{
-
-if(err) return res.send(err);
-
-if(!row)
-return res.json({status:"fail"});
-
-res.json({
+// MANAGER LOGIN
+if(username==="manager" && password==="admin123"){
+return res.json({
 status:"ok",
-id:row.id,
-name:row.name
+role:"manager",
+name:"Manager",
+id:1
 });
+}
+
+// WORKER LOGIN
+if(username==="worker" && password==="1234"){
+return res.json({
+status:"ok",
+role:"worker",
+name:"Worker",
+id:2
+});
+}
+
+res.json({status:"fail"});
 
 });
-});
+
 
 
 
