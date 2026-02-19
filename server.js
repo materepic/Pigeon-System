@@ -15,7 +15,7 @@ app.use(bodyParser.json());
 app.use(cors());
 
 // Serve frontend files from /public
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "public"), { index: false }));
 
 // Sessions (manager + worker login)
 app.use(session({
@@ -87,7 +87,7 @@ app.get("/", (req, res) => {
 
 app.get("/worker", requireLogin, (req, res) => {
   // Worker UI
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(__dirname, "public", "worker.html"));
 });
 
 app.get("/manager", requireManager, (req, res) => {
@@ -125,6 +125,22 @@ app.post("/login", (req, res) => {
 app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ status: "ok" }));
 });
+
+// Home opens login page
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+// Worker page (must be logged in)
+app.get("/worker", requireLogin, (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "worker.html"));
+});
+
+// Manager page (must be manager)
+app.get("/manager", requireManager, (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "manager.html"));
+});
+
 
 /* ---------- WORKER ACTIONS ---------- */
 app.post("/feed", requireLogin, (req, res) => {
