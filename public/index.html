@@ -116,6 +116,37 @@ issue:document.getElementById("issue").value
 .then(res=>res.text())
 .then(alert)
 }
+
+
+/* LOAD SCHEDULE */
+fetch(API+"/schedule")
+.then(res=>res.text())
+.then(data=>{
+let box=document.getElementById("scheduleBox");
+box.innerText=data;
+
+if(data.includes("Morning") || data.includes("Evening"))
+box.style.color="green";
+else
+box.style.color="orange";
+});
+
+
+/* LOAD WEATHER GUIDE */
+fetch(API+"/weather-guide")
+.then(res=>res.text())
+.then(data=>{
+let box=document.getElementById("weatherBox");
+box.innerText=data;
+
+if(data.includes("extra"))
+box.style.color="red";
+else
+box.style.color="green";
+});
+
+
+
 </script>
 
 </body>

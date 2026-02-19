@@ -3,10 +3,12 @@ const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
+app.use(express.static(path.join(__dirname, "public")));
 
 /* ---------- DATABASE ---------- */
 const db = new sqlite3.Database("pigeon.db", (err) => {
@@ -47,8 +49,9 @@ db.serialize(() => {
 
 // server test
 app.get("/", (req,res)=>{
-    res.send("Pigeon System Running");
+    res.sendFile(path.join(__dirname,"public","index.html"));
 });
+
 
 /* LOGIN (Database Based) */
 app.post("/login",(req,res)=>{
