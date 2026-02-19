@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Worker Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body{font-family:Arial;text-align:center;background:#eef2f7;padding:20px;}
+    input{padding:12px;margin:8px;font-size:16px;width:280px;}
+    button{padding:12px 18px;margin:8px;font-size:16px;cursor:pointer;}
+    .box{display:inline-block;background:white;padding:18px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.1);width:95%;max-width:520px;}
+    hr{margin:18px 0;}
+  </style>
+</head>
+<body>
+
+<div class="box">
+  <h2>Worker Panel</h2>
+
+  <div id="scheduleBox" style="font-weight:bold;"></div>
+  <div id="weatherBox" style="margin-top:6px;"></div>
+
+  <hr>
+
+  <h3>Pigeon Feeding</h3>
+  <input id="pigeonId" placeholder="Pigeon ID"><br>
+  <input id="amount" type="number" placeholder="Amount (grams)"><br>
+  <button type="button" onclick="feed()">Submit Feeding</button>
+
+  <hr>
+
+  <h3>Report Sick Pigeon</h3>
+  <input id="healthPigeonId" placeholder="Pigeon ID"><br>
+  <input id="issue" placeholder="Issue (e.g. not eating)"><br>
+  <button type="button" onclick="health()">Submit Report</button>
+
+  <hr>
+
+  <button type="button" onclick="logout()">Logout</button>
+</div>
+
+<script>
+async function feed(){
+  const pigeonId = document.getElementById("pigeonId").value.trim();
+  const amount = document.getElementById("amount").value.trim();
+
+  if(!pigeonId || !amount) return alert("Fill all fields");
+
+  const res = await fetch("/feed",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    credentials:"include",
+    body: JSON.stringify({ pigeonId, amount })
+  });
+
+  const msg = await res.text();
+  alert(msg);
+  document.getElementById("pigeonId").value="";
+  document.getElementById("amount").value="";
+}
+
+async function health(){
+  const pigeon_id = document.getElementById("healthPigeonId").value.trim();
+  const issue = document.getElementById("issue").value.trim();
+
+  if(!pigeon_id || !issue) return alert("Fill all fields");
+
+  const res = await fetch("/health",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    credentials:"include",
+    body: JSON.stringify({ pigeon_id, issue })
+  });
+
+  const data = await res.json();
+  alert("Saved. Advice: " + (data.advice || "Monitor"));
+  document.getElementById("healthPigeonId").value="";
+  document.getElementById("issue").value="";
+}
+
+async function logout(){
+  await fetch("/logout",{ method:"POST", credentials:"include" });
+  window.location = "/";
+}
+
+// Guidelines
+fetch("/schedule").then(r=>r.text()).then(t=>document.getElementById("scheduleBox").innerText=t);
+fetch("/weather-guide").then(r=>r.text()).then(t=>document.getElementById("weatherBox").innerText=t);
+</script>
+</body>
+</html>

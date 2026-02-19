@@ -3,237 +3,163 @@
 <head>
   <title>Manager Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body{font-family:Arial;background:#f4f6f9;padding:18px;}
+    h2{margin:0 0 10px;}
+    .row{display:flex;gap:16px;flex-wrap:wrap;}
+    .card{background:white;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.08);padding:14px;flex:1;min-width:320px;}
+    table{width:100%;border-collapse:collapse;}
+    th,td{border-bottom:1px solid #eee;padding:8px;text-align:left;font-size:14px;}
+    th{background:#2d89ef;color:white;}
+    input{padding:10px;margin:6px 6px 6px 0;}
+    button{padding:10px 14px;cursor:pointer;}
+    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  </style>
 </head>
-<body class="container py-4">
+<body>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="top">
   <h2>Manager Dashboard</h2>
-  <button class="btn btn-outline-danger" onclick="logout()">Logout</button>
+  <button onclick="logout()">Logout</button>
 </div>
 
-<ul class="nav nav-tabs mb-3">
-  <li class="nav-item"><button class="nav-link active" onclick="showTab('logs')">Logs</button></li>
-  <li class="nav-item"><button class="nav-link" onclick="showTab('workers')">Workers</button></li>
-  <li class="nav-item"><button class="nav-link" onclick="showTab('analytics')">Analytics</button></li>
-  <li class="nav-item"><button class="nav-link" onclick="showTab('finger')">Fingerprint</button></li>
-</ul>
-
-<div id="tab-logs">
-  <div class="row g-3">
-    <div class="col-12 col-lg-6">
-      <div class="card">
-        <div class="card-header"><b>Feeding Logs</b></div>
-        <div class="card-body table-responsive">
-          <table class="table table-sm" id="feedTable"></table>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-lg-6">
-      <div class="card">
-        <div class="card-header"><b>Health Reports</b></div>
-        <div class="card-body table-responsive">
-          <table class="table table-sm" id="healthTable"></table>
-        </div>
-      </div>
-    </div>
-  </div>
+<div class="card">
+  <h3>Add Worker</h3>
+  <input id="newName" placeholder="Worker name">
+  <input id="newPin" placeholder="PIN">
+  <button onclick="addWorker()">Add</button>
+  <div id="workerMsg" style="margin-top:6px;color:#444;"></div>
 </div>
 
-<div id="tab-workers" style="display:none">
+<br>
+
+<div class="row">
   <div class="card">
-    <div class="card-header"><b>Manage Workers</b></div>
-    <div class="card-body">
-      <div class="row g-2 mb-3">
-        <div class="col"><input id="newName" class="form-control" placeholder="Worker name"></div>
-        <div class="col"><input id="newPin" class="form-control" placeholder="PIN"></div>
-        <div class="col-auto"><button class="btn btn-primary" onclick="addWorker()">Add</button></div>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-sm" id="workersTable"></table>
-      </div>
-    </div>
+    <h3>Workers</h3>
+    <table id="workersTable"></table>
   </div>
-</div>
 
-<div id="tab-analytics" style="display:none">
   <div class="card">
-    <div class="card-header"><b>Feeding Activity (Last 14 Days)</b></div>
-    <div class="card-body">
-      <canvas id="feedChart"></canvas>
-    </div>
+    <h3>Feeding Logs</h3>
+    <table id="feedTable"></table>
   </div>
-</div>
 
-<div id="tab-finger" style="display:none">
   <div class="card">
-    <div class="card-header"><b>Enroll Fingerprint (WebAuthn)</b></div>
-    <div class="card-body">
-      <p class="text-muted">This uses phone/laptop biometrics (fingerprint/FaceID) — no extra hardware.</p>
-      <div class="row g-2 mb-3">
-        <div class="col"><input id="enrollWorkerId" class="form-control" placeholder="Worker ID"></div>
-        <div class="col-auto"><button class="btn btn-success" onclick="enroll()">Enroll</button></div>
-      </div>
-      <div id="enrollMsg"></div>
-    </div>
+    <h3>Health Reports</h3>
+    <table id="healthTable"></table>
   </div>
 </div>
 
 <script>
-function showTab(name){
-  ["logs","workers","analytics","finger"].forEach(t=>{
-    document.getElementById("tab-"+t).style.display = (t===name) ? "" : "none";
-  });
-  document.querySelectorAll(".nav-link").forEach((b,i)=>{
-    const map=["logs","workers","analytics","finger"];
-    b.classList.toggle("active", map[i]===name);
-  });
-}
-
 async function logout(){
-  await fetch("/logout", { method:"POST" });
+  await fetch("/logout",{ method:"POST", credentials:"include" });
   window.location = "/";
-}
-
-async function loadFeeds(){
-  const res = await fetch("/api/manager/feed-logs");
-  if(!res.ok) return;
-  const data = await res.json();
-  const t = document.getElementById("feedTable");
-  t.innerHTML = `<tr><th>Worker</th><th>Pigeon</th><th>Amount</th><th>Time</th></tr>`;
-  data.forEach(r=>{
-    t.innerHTML += `<tr>
-      <td>${r.workerName || ""}</td>
-      <td>${r.pigeonId || ""}</td>
-      <td>${r.amount || ""}</td>
-      <td>${r.time || ""}</td>
-    </tr>`;
-  });
-}
-
-async function loadHealth(){
-  const res = await fetch("/api/manager/health-logs");
-  if(!res.ok) return;
-  const data = await res.json();
-  const t = document.getElementById("healthTable");
-  t.innerHTML = `<tr><th>Worker</th><th>Pigeon</th><th>Issue</th><th>Time</th></tr>`;
-  data.forEach(r=>{
-    t.innerHTML += `<tr>
-      <td>${r.worker || ""}</td>
-      <td>${r.pigeon_id || ""}</td>
-      <td>${r.issue || ""}</td>
-      <td>${r.time || ""}</td>
-    </tr>`;
-  });
-}
-
-async function loadWorkers(){
-  const res = await fetch("/api/manager/workers");
-  if(!res.ok) return;
-  const data = await res.json();
-  const t = document.getElementById("workersTable");
-  t.innerHTML = `<tr><th>ID</th><th>Name</th><th>Action</th></tr>`;
-  data.forEach(w=>{
-    t.innerHTML += `<tr>
-      <td>${w.id}</td>
-      <td>${w.name}</td>
-      <td><button class="btn btn-sm btn-danger" onclick="delWorker(${w.id})">Delete</button></td>
-    </tr>`;
-  });
 }
 
 async function addWorker(){
   const name = document.getElementById("newName").value.trim();
-  const pin = document.getElementById("newPin").value.trim();
-  if(!name || !pin) return alert("Enter name and pin");
-  const res = await fetch("/api/manager/workers", {
+  const pin  = document.getElementById("newPin").value.trim();
+  const msg  = document.getElementById("workerMsg");
+
+  if(!name || !pin){ msg.innerText = "Enter worker name and PIN"; return; }
+
+  const res = await fetch("/api/manager/workers",{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
+    credentials:"include",
     body: JSON.stringify({ name, pin })
   });
-  if(!res.ok) return alert("Failed");
+
+  const text = await res.text();
+
+  if(!res.ok){
+    msg.innerText = "Add worker failed: " + text;
+    return;
+  }
+
+  msg.innerText = "Worker added.";
   document.getElementById("newName").value="";
   document.getElementById("newPin").value="";
   await loadWorkers();
 }
 
 async function delWorker(id){
-  if(!confirm("Delete worker "+id+"?")) return;
-  const res = await fetch("/api/manager/workers/"+id, { method:"DELETE" });
-  if(!res.ok) return alert("Failed");
+  if(!confirm("Delete worker ID " + id + "?")) return;
+
+  const res = await fetch("/api/manager/workers/" + id,{
+    method:"DELETE",
+    credentials:"include"
+  });
+
+  if(!res.ok){
+    alert("Delete failed");
+    return;
+  }
   await loadWorkers();
 }
 
-let chart;
-async function loadChart(){
-  const res = await fetch("/api/manager/stats");
+async function loadWorkers(){
+  const res = await fetch("/api/manager/workers",{ credentials:"include" });
   if(!res.ok) return;
-  const rows = await res.json();
-  const labels = rows.map(r=>r.day);
-  const values = rows.map(r=>Number(r.feedCount));
+  const data = await res.json();
 
-  const ctx = document.getElementById("feedChart");
-  if(chart) chart.destroy();
-  chart = new Chart(ctx, {
-    type: "line",
-    data: { labels, datasets: [{ label:"Feeds per day", data: values }] },
-    options: { responsive:true }
+  const t = document.getElementById("workersTable");
+  t.innerHTML = `<tr><th>ID</th><th>Name</th><th>Action</th></tr>`;
+  data.forEach(w=>{
+    t.innerHTML += `
+      <tr>
+        <td>${w.id}</td>
+        <td>${w.name}</td>
+        <td><button onclick="delWorker(${w.id})">Delete</button></td>
+      </tr>`;
   });
 }
 
-async function enroll(){
-  const workerId = document.getElementById("enrollWorkerId").value.trim();
-  if(!workerId) return alert("Enter worker ID");
-  const msg = document.getElementById("enrollMsg");
-  msg.innerHTML = "Starting enrollment...";
+async function loadFeeds(){
+  const res = await fetch("/api/manager/feed-logs",{ credentials:"include" });
+  if(!res.ok) return;
+  const data = await res.json();
 
-  const optRes = await fetch("/api/webauthn/register/options",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ workerId })
+  const t = document.getElementById("feedTable");
+  t.innerHTML = `<tr><th>Worker</th><th>Pigeon</th><th>Amount</th><th>Time</th></tr>`;
+  data.forEach(r=>{
+    t.innerHTML += `
+      <tr>
+        <td>${r.worker || ""}</td>
+        <td>${r.pigeonId || ""}</td>
+        <td>${r.amount || ""}</td>
+        <td>${r.time || ""}</td>
+      </tr>`;
   });
+}
 
-  if(!optRes.ok){ msg.innerHTML="Failed to get options"; return; }
-  const options = await optRes.json();
+async function loadHealth(){
+  const res = await fetch("/api/manager/health-logs",{ credentials:"include" });
+  if(!res.ok) return;
+  const data = await res.json();
 
-  // Browser API
-  options.challenge = Uint8Array.from(atob(options.challenge.replace(/-/g,'+').replace(/_/g,'/')), c=>c.charCodeAt(0));
-  options.user.id = Uint8Array.from(options.user.id, c=>c.charCodeAt(0));
-
-  const cred = await navigator.credentials.create({ publicKey: options });
-
-  const data = {
-    id: cred.id,
-    rawId: btoa(String.fromCharCode(...new Uint8Array(cred.rawId))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''),
-    type: cred.type,
-    response: {
-      attestationObject: btoa(String.fromCharCode(...new Uint8Array(cred.response.attestationObject))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''),
-      clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(cred.response.clientDataJSON))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')
-    }
-  };
-
-  const verRes = await fetch("/api/webauthn/register/verify",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify(data)
+  const t = document.getElementById("healthTable");
+  t.innerHTML = `<tr><th>Worker</th><th>Pigeon</th><th>Issue</th><th>Time</th></tr>`;
+  data.forEach(r=>{
+    t.innerHTML += `
+      <tr>
+        <td>${r.worker || ""}</td>
+        <td>${r.pigeon_id || ""}</td>
+        <td>${r.issue || ""}</td>
+        <td>${r.time || ""}</td>
+      </tr>`;
   });
-
-  if(verRes.ok) msg.innerHTML = "<b>Enrolled successfully.</b>";
-  else msg.innerHTML = "Enrollment failed.";
 }
 
 async function refresh(){
+  await loadWorkers();
   await loadFeeds();
   await loadHealth();
-  await loadWorkers();
-  await loadChart();
 }
 
 refresh();
 setInterval(loadFeeds, 5000);
 setInterval(loadHealth, 5000);
 </script>
-
 </body>
 </html>
