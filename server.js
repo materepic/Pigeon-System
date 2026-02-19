@@ -220,6 +220,12 @@ res.json(rows);
 });
 
 
+app.get("/create-test-user",(req,res)=>{
+db.run("INSERT INTO workers(name,pin) VALUES('worker','1234')");
+res.send("Test user created");
+});
+
+
 /* ---------- SERVER ---------- */
 app.listen(3000, ()=>{
 console.log("Server running on port 3000");
