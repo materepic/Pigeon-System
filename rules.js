@@ -1,71 +1,40 @@
-<<<<<<< HEAD
-function checkHealth(issue,weather){
-
-if(issue.includes("not eating") && weather==="hot")
-return "High Risk — isolate pigeon immediately";
-
-if(issue.includes("weak"))
-return "Provide vitamins";
-
-return "Monitor condition";
-}
-
-module.exports=checkHealth;
-
 function checkHealth(issue, weather){
 
-if(issue.toLowerCase().includes("weak"))
-return "Isolate pigeon and monitor feeding.";
+issue = issue.toLowerCase();
 
-if(issue.toLowerCase().includes("not eating"))
-return "Check beak and throat for infection.";
+/* serious conditions */
 
-if(issue.toLowerCase().includes("injury"))
-return "Clean wound and separate pigeon.";
+if(issue.includes("not eating") && weather==="hot")
+return "High Risk — isolate pigeon immediately and monitor hydration.";
+
+if(issue.includes("injury"))
+return "Clean wound, disinfect area, and isolate pigeon.";
+
+
+/* moderate conditions */
+
+if(issue.includes("weak"))
+return "Provide vitamins and monitor feeding closely.";
+
+if(issue.includes("sleepy"))
+return "Observe for 24 hours and ensure hydration.";
+
+
+/* weather-based guidance */
 
 if(weather==="hot")
-return "Ensure extra water is provided.";
+return "Ensure extra water is available and reduce feed slightly.";
 
 if(weather==="cold")
-return "Increase feed slightly.";
+return "Increase feed slightly and ensure warmth.";
 
-return "Monitor pigeon closely.";
+if(weather==="rain")
+return "Keep pigeons sheltered and monitor illness risk.";
+
+
+/* default */
+
+return "No critical issue detected. Continue monitoring.";
 }
 
 module.exports = checkHealth;
-=======
-function checkHealth(issue,weather){
-
-if(issue.includes("not eating") && weather==="hot")
-return "High Risk — isolate pigeon immediately";
-
-if(issue.includes("weak"))
-return "Provide vitamins";
-
-return "Monitor condition";
-}
-
-module.exports=checkHealth;
-
-function checkHealth(issue, weather){
-
-if(issue.toLowerCase().includes("weak"))
-return "Isolate pigeon and monitor feeding.";
-
-if(issue.toLowerCase().includes("not eating"))
-return "Check beak and throat for infection.";
-
-if(issue.toLowerCase().includes("injury"))
-return "Clean wound and separate pigeon.";
-
-if(weather==="hot")
-return "Ensure extra water is provided.";
-
-if(weather==="cold")
-return "Increase feed slightly.";
-
-return "Monitor pigeon closely.";
-}
-
-module.exports = checkHealth;
->>>>>>> c83536fb091a4aa7ed8f49f1121d2601613261db

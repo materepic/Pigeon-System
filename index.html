@@ -1,12 +1,9 @@
-<<<<<<< HEAD
 <!DOCTYPE html>
 <html>
 <head>
 <title>Pigeon System</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="manifest" href="manifest.json">
-
-
 
 <style>
 body{font-family:Arial;text-align:center;background:#eef2f7;}
@@ -18,15 +15,11 @@ input{padding:10px;margin:10px;font-size:16px;}
 
 <body style="background:url('pigeon.jpeg'); background-size:cover;">
 
-
-
 <div id="loginBox" class="box">
 <h2>Worker Login</h2>
 <input id="name" placeholder="Name"><br>
 <input id="pin" placeholder="PIN"><br>
 <button class="btn btn-primary btn-lg" onclick="login()">Login</button>
-
-
 </div>
 
 <div id="panel" style="display:none" class="box">
@@ -55,9 +48,7 @@ input{padding:10px;margin:10px;font-size:16px;}
 const API="https://pigeon-system.onrender.com";
 let workerName="";
 
-/* LOGIN */
 function login(){
-
 fetch(API+"/login",{
 method:"POST",
 headers:{ "Content-Type":"application/json"},
@@ -68,225 +59,26 @@ password:document.getElementById("pin").value
 })
 .then(res=>res.json())
 .then(data=>{
-
 if(data.status==="ok"){
-
-
-alert("Invalid login");
-}
-
-
 workerName=data.name;
-
-localStorage.setItem("workerId",data.id);
-localStorage.setItem("workerName",data.name);
-document.getElementById("loginBox").style.display="none";
-document.getElementById("panel").style.display="block";
-document.getElementById("welcome").innerText="Welcome "+workerName;
-
-
-
-})
-.catch(err=>{
-alert("Server not running");
-console.log(err);
-});
-}
-
-
-
-
-
-/* FEED */
-function feed(){
-
-const pigeonId=document.getElementById("pigeonId").value;
-const amount=document.getElementById("amount").value;
-
-if(!pigeonId || !amount)
-return alert("Please fill all fields");
-
-fetch(API+"/feed",{
-method:"POST",
-headers:{ "Content-Type":"application/json"},
-body:JSON.stringify({
-worker:localStorage.getItem("workerId"),
-pigeonId:pigeonId,
-amount:amount
-})
-})
-.then(res=>res.text())
-.then(msg=>{
-alert(msg);
-document.getElementById("pigeonId").value="";
-document.getElementById("amount").value="";
-});
-
-}
-
-/* HEALTH */
-function health(){
-fetch(API+"/health",{
-method:"POST",
-headers:{ "Content-Type":"application/json"},
-body:JSON.stringify({
-worker:workerName,
-pigeon_id:document.getElementById("healthPigeonId").value,
-issue:document.getElementById("issue").value
-})
-})
-.then(res=>res.text())
-.then(alert)
-}
-
-/* LOAD SCHEDULE */
-fetch(API+"/schedule")
-.then(res=>res.text())
-.then(data=>{
-let box=document.getElementById("scheduleBox");
-box.innerText=data;
-
-if(data.includes("Morning") || data.includes("Evening"))
-box.style.color="green";
-else
-box.style.color="orange";
-});
-
-
-/* LOAD WEATHER GUIDE */
-fetch(API+"/weather-guide")
-.then(res=>res.text())
-.then(data=>{
-let box=document.getElementById("weatherBox");
-box.innerText=data;
-alertSound();
-
-
-if(data.includes("extra"))
-box.style.color="red";
-else
-box.style.color="green";
-});
-
-function alertSound(){
-let audio=new Audio("https://www.soundjay.com/buttons/beep-01a.mp3");
-audio.play();
-}
-
-let selectedAmount="";
-
-function setAmount(val){
-selectedAmount=val;
-alert("Selected "+val);
-}
-
-</script>
-
-
-
-
-</body>
-</html>
-=======
-<!DOCTYPE html>
-<html>
-<head>
-<title>Pigeon System</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="manifest" href="manifest.json">
-
-
-
-<style>
-body{font-family:Arial;text-align:center;background:#eef2f7;}
-button{padding:15px 25px;margin:10px;font-size:18px;border:none;border-radius:10px;background:#2d89ef;color:white;}
-input{padding:10px;margin:10px;font-size:16px;}
-.box{margin-top:60px;}
-</style>
-</head>
-
-<body style="background:url('pigeon.jpeg'); background-size:cover;">
-
-
-
-<div id="loginBox" class="box">
-<h2>Worker Login</h2>
-<input id="name" placeholder="Name"><br>
-<input id="pin" placeholder="PIN"><br>
-<button class="btn btn-primary btn-lg" onclick="login()">Login</button>
-
-
-</div>
-
-<div id="panel" style="display:none" class="box">
-
-<h2 id="welcome"></h2>
-
-<h3 id="scheduleBox"></h3>
-<h3 id="weatherBox"></h3>
-
-<h4>Pigeon Feeding</h4>
-
-<input id="pigeonId" class="form-control mb-3" placeholder="Enter Pigeon ID">
-<input id="amount" type="number" class="form-control mb-3" placeholder="Enter Amount (grams)">
-<button class="btn btn-primary btn-lg w-100" onclick="feed()">Submit Feeding</button>
-
-<hr>
-
-<h3>Report Sick Pigeon</h3>
-<input id="healthPigeonId" placeholder="Pigeon ID">
-<input id="issue" placeholder="Problem"><br>
-<button class="btn btn-primary btn-lg" onclick="health()">Submit Report</button>
-
-</div>
-
-<script>
-const API="http://localhost:3000";
-let workerName="";
-
-/* LOGIN */
-function login(){
-
-fetch(API+"/login",{
-method:"POST",
-headers:{ "Content-Type":"application/json"},
-body:JSON.stringify({
-username:document.getElementById("name").value,
-password:document.getElementById("pin").value
-})
-})
-.then(res=>res.json())
-.then(data=>{
-
-if(data.status==="ok"){
-
-workerName=data.name;
-
 localStorage.setItem("workerId",data.id);
 localStorage.setItem("workerName",data.name);
 
 document.getElementById("loginBox").style.display="none";
 document.getElementById("panel").style.display="block";
 document.getElementById("welcome").innerText="Welcome "+workerName;
-
 }else{
 alert("Invalid login");
 }
-
 })
 .catch(err=>{
-alert("Server not running");
+alert("Server not reachable");
 console.log(err);
 });
 }
 
-
-
-
-
 /* FEED */
 function feed(){
-
 const pigeonId=document.getElementById("pigeonId").value;
 const amount=document.getElementById("amount").value;
 
@@ -308,7 +100,6 @@ alert(msg);
 document.getElementById("pigeonId").value="";
 document.getElementById("amount").value="";
 });
-
 }
 
 /* HEALTH */
@@ -325,53 +116,7 @@ issue:document.getElementById("issue").value
 .then(res=>res.text())
 .then(alert)
 }
-
-/* LOAD SCHEDULE */
-fetch(API+"/schedule")
-.then(res=>res.text())
-.then(data=>{
-let box=document.getElementById("scheduleBox");
-box.innerText=data;
-
-if(data.includes("Morning") || data.includes("Evening"))
-box.style.color="green";
-else
-box.style.color="orange";
-});
-
-
-/* LOAD WEATHER GUIDE */
-fetch(API+"/weather-guide")
-.then(res=>res.text())
-.then(data=>{
-let box=document.getElementById("weatherBox");
-box.innerText=data;
-alertSound();
-
-
-if(data.includes("extra"))
-box.style.color="red";
-else
-box.style.color="green";
-});
-
-function alertSound(){
-let audio=new Audio("https://www.soundjay.com/buttons/beep-01a.mp3");
-audio.play();
-}
-
-let selectedAmount="";
-
-function setAmount(val){
-selectedAmount=val;
-alert("Selected "+val);
-}
-
 </script>
-
-
-
 
 </body>
 </html>
->>>>>>> c83536fb091a4aa7ed8f49f1121d2601613261db
