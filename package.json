@@ -12,10 +12,12 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@simplewebauthn/server": "^13.2.2",
     "body-parser": "^2.2.2",
     "bootstrap": "^5.3.8",
     "cors": "^2.8.6",
     "express": "^5.2.1",
+    "express-session": "^1.19.0",
     "lowdb": "^7.0.1",
     "serialport": "^13.0.0",
     "sqlite3": "^5.0.2"

@@ -77,6 +77,12 @@ console.log(err);
 });
 }
 
+if(data.role === "manager"){
+  window.location = "/manager";
+  return;
+}
+
+
 /* FEED */
 function feed(){
 const pigeonId=document.getElementById("pigeonId").value;
