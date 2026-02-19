@@ -8,6 +8,8 @@ const session = require("express-session");
 const checkHealth = require("./rules");
 
 const app = express();
+app.set("trust proxy", 1);
+
 
 app.use(bodyParser.json());
 app.use(cors());
