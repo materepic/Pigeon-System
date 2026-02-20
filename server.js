@@ -43,19 +43,19 @@ db.serialize(() => {
   `);
 
   db.run(`
-    CREATE TABLE IF NOT EXISTS feed_logs(
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      worker_name TEXT,
-      pigeon_code TEXT,
-      amount_grams INTEGER,
-      plan_name TEXT,
-      reason TEXT,
-      time TEXT
-    )
-  `);
+  CREATE TABLE IF NOT EXISTS feed_logs(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    worker TEXT,
+    pigeonId TEXT,
+    amount INTEGER,
+    time TEXT
+  )
+`);
 
-  // If table existed before without reason column, add it (safe)
-  db.run(`ALTER TABLE feed_logs ADD COLUMN reason TEXT`, [], () => {});
+// Add new columns if missing (safe on old DB)
+db.run(`ALTER TABLE feed_logs ADD COLUMN plan_name TEXT`, [], () => {});
+db.run(`ALTER TABLE feed_logs ADD COLUMN reason TEXT`, [], () => {});
+
 
   db.run(`
     CREATE TABLE IF NOT EXISTS health_reports (
@@ -539,11 +539,14 @@ app.post("/feed", requireLogin, (req, res) => {
 
             const time = nowStr();
             db.run(
-              `INSERT INTO feed_logs(worker_name,pigeon_code,amount_grams,plan_name,reason,time)
-               VALUES(?,?,?,?,?,?)`,
-              [workerName, pigeon_code, grams, chosen.plan_name, reasonText || null, time],
-              (err5) => {
-                if (err5) return res.status(500).send("DB error");
+             `INSERT INTO feed_logs(worker,pigeonId,amount,plan_name,reason,time)
+              VALUES(?,?,?,?,?,?)`,
+             [workerName, pigeon_code, grams, chosen.plan_name, reasonText || null, time],
+             (err5) => {
+               if (err5) {
+                console.log("FEED DB ERROR:", err5);   // 👈 add this so you can see exact reason
+                return res.status(500).send("DB error");
+               }
 
                 // Notification for EVERY feeding (manager)
                 const title = "Feeding Logged";
@@ -636,7 +639,7 @@ app.delete("/api/manager/workers/:id", requireManager, (req, res) => {
 /* Feeding Logs (include reason) */
 app.get("/api/manager/feed-logs", requireManager, (req, res) => {
   db.all(
-    `SELECT id,worker_name AS worker,pigeon_code AS pigeonId,amount_grams AS amount,plan_name,reason,time
+    `SELECT id,worker AS worker, pigeonId AS pigeonId, amount AS amount, plan_name, reason, time
      FROM feed_logs
      ORDER BY id DESC
      LIMIT 500`,
