@@ -8,7 +8,6 @@
   <style>
     :root{
       --card: rgba(255,255,255,0.10);
-      --card2: rgba(255,255,255,0.14);
       --stroke: rgba(255,255,255,0.14);
       --text: rgba(255,255,255,0.92);
       --muted: rgba(255,255,255,0.70);
@@ -156,9 +155,7 @@
       margin-top: 10px;
     }
 
-    .list{
-      display:flex; flex-direction:column; gap:10px;
-    }
+    .list{ display:flex; flex-direction:column; gap:10px; }
     .note{
       background: rgba(0,0,0,0.18);
       border: 1px solid rgba(255,255,255,0.12);
@@ -167,7 +164,17 @@
       font-size: 12px;
       line-height:1.35;
     }
-    .note b{ font-size: 12px; }
+
+    .dangerBox{
+      display:none;
+      margin-top:10px;
+      background: rgba(255,77,109,0.18);
+      border: 1px solid rgba(255,77,109,0.35);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height:1.35;
+    }
 
     /* Modal */
     .modalBackdrop{
@@ -218,7 +225,7 @@
     <div class="banner" id="planBanner">Loading plan…</div>
 
     <div class="grid">
-      <!-- LEFT: Control Panel -->
+      <!-- LEFT -->
       <div class="card">
         <div class="cardHead">
           <h2>Control Panel</h2>
@@ -230,15 +237,13 @@
         </div>
 
         <div class="cardBody">
-          <!-- PIGEONS -->
           <div id="panePigeons">
             <div class="pigeonList" id="pigeonList"></div>
             <div class="helper">
-              Tap a pigeon to view profile + feeding guidance from management. Recommended portions auto-adjust when races are close.
+              Tap a pigeon to view profile + guidance. Recommended grams auto-switch for morning/evening.
             </div>
           </div>
 
-          <!-- GUIDANCE -->
           <div id="paneGuidance" style="display:none;">
             <div class="formRow">
               <select id="gCategory" onchange="loadGuidance()">
@@ -255,21 +260,20 @@
             <div class="list" id="guidanceList"></div>
 
             <div class="helper">
-              Guidance is managed by management in the Manager Dashboard and updates automatically here.
+              Guidance is controlled by management and updates here automatically.
             </div>
           </div>
 
-          <!-- NOTIFICATIONS -->
           <div id="paneNotifs" style="display:none;">
             <div class="list" id="notifList"></div>
             <div class="helper">
-              Notifications include race plan changes and health alerts that management wants workers to see.
+              Worker notifications: races/breeding updates etc. (Manager gets full log notifications for every feed/health).
             </div>
           </div>
         </div>
       </div>
 
-      <!-- RIGHT: Actions -->
+      <!-- RIGHT -->
       <div class="card">
         <div class="cardHead">
           <h2>Actions</h2>
@@ -285,12 +289,21 @@
             <div class="cardBody">
               <div class="formRow">
                 <input id="feedPigeon" placeholder="Pigeon code (e.g. Pigeon 1)">
-                <input id="feedAmount" type="number" placeholder="Amount (grams)">
+                <input id="feedAmount" type="number" placeholder="Amount (grams)" oninput="checkOverfeed()">
               </div>
-              <button class="btn btnPrimary" style="width:100%" onclick="submitFeed()">Submit Feeding</button>
-              <div class="helper" id="feedHint" style="margin-top:10px;">
-                Tip: Select a pigeon from the Control Panel to auto-fill recommended grams.
+
+              <div class="helper" id="feedHint" style="margin-top:0;">
+                Select a pigeon to auto-fill recommended grams for the current feed slot.
               </div>
+
+              <div class="dangerBox" id="overBox">
+                <b>Over recommended amount</b><br>
+                You must write a reason below (this will be logged and sent to management).
+              </div>
+
+              <textarea id="feedReason" placeholder="Reason for feeding more than recommended (required if over recommended)" style="display:none;"></textarea>
+
+              <button class="btn btnPrimary" style="width:100%;margin-top:10px;" onclick="submitFeed()">Submit Feeding</button>
             </div>
           </div>
 
@@ -337,6 +350,9 @@
 
   let pigeons = [];
   let currentPlan = null;
+  let currentSlot = "morning"; // morning/evening
+  let currentRec = null; // number
+  let selectedPigeonObj = null;
 
   function showTab(which){
     document.getElementById("panePigeons").style.display = (which==="pigeons") ? "" : "none";
@@ -356,19 +372,71 @@
     window.location = "/";
   }
 
+  function timeToMinutes(t){
+    // "HH:MM"
+    if(!t) return null;
+    const [h,m] = t.split(":").map(x=>parseInt(x,10));
+    if(Number.isNaN(h) || Number.isNaN(m)) return null;
+    return h*60 + m;
+  }
+
+  function computeSlotFromPlan(plan){
+    // Decide if we are closer to morning feed or evening feed time
+    // If after midday (or closer to evening time), use evening slot
+    if(!plan) return "morning";
+    const now = new Date();
+    const nowMin = now.getHours()*60 + now.getMinutes();
+
+    const mMin = timeToMinutes(plan.morning_time) ?? 360;
+    const eMin = timeToMinutes(plan.evening_time) ?? 1050;
+
+    // If now is after midpoint between morning and evening -> evening, else morning
+    const mid = Math.round((mMin + eMin)/2);
+    return (nowMin >= mid) ? "evening" : "morning";
+  }
+
+  function setRecommendedFromSelected(){
+    if(!selectedPigeonObj) return;
+    const rec = selectedPigeonObj.recommended || {};
+    currentRec = (currentSlot === "evening") ? rec.evening_grams : rec.morning_grams;
+
+    document.getElementById("feedPigeon").value = selectedPigeonObj.code;
+
+    if(currentRec != null){
+      document.getElementById("feedAmount").value = currentRec;
+      document.getElementById("feedHint").innerText =
+        `Current slot: ${currentSlot.toUpperCase()} • Recommended: ${currentRec}g (${rec.plan || "Plan"}). If you exceed it, a reason is required.`;
+    } else {
+      document.getElementById("feedHint").innerText =
+        `Current slot: ${currentSlot.toUpperCase()} • No recommended grams set. Ask management to set base grams for this pigeon.`;
+    }
+    checkOverfeed();
+  }
+
+  function checkOverfeed(){
+    const grams = Number(document.getElementById("feedAmount").value);
+    const over = (currentRec != null && Number.isFinite(grams) && grams > currentRec);
+
+    document.getElementById("overBox").style.display = over ? "block" : "none";
+    document.getElementById("feedReason").style.display = over ? "block" : "none";
+    if(!over) document.getElementById("feedReason").value = "";
+  }
+
   function openModal(p){
+    selectedPigeonObj = p;
+
     const title = p.code + (p.name ? " • " + p.name : "");
     document.getElementById("modalTitle").innerText = title;
 
     const rec = p.recommended || {};
     const meta = `
       <b>Profile</b><br>
-      Status: ${p.status || "-"}<br>
-      Loft: ${p.loft_section || "-"}<br>
-      Sex: ${p.sex || "-"}<br>
-      Breed: ${p.breed || "-"}<br>
+      Status: ${escapeHtml(p.status || "-")}<br>
+      Loft: ${escapeHtml(p.loft_section || "-")}<br>
+      Sex: ${escapeHtml(p.sex || "-")}<br>
+      Breed: ${escapeHtml(p.breed || "-")}<br>
       Base grams: Morning ${p.morning_base_grams ?? "-"}g, Evening ${p.evening_base_grams ?? "-"}g<br>
-      <b>Recommended (${rec.plan || "-"})</b>: Morning ${rec.morning_grams ?? "-"}g, Evening ${rec.evening_grams ?? "-"}g
+      <b>Recommended (${escapeHtml(rec.plan || "-")})</b>: Morning ${rec.morning_grams ?? "-"}g, Evening ${rec.evening_grams ?? "-"}g
     `;
     document.getElementById("modalMeta").innerHTML = meta;
 
@@ -376,15 +444,10 @@
     const ul = document.getElementById("modalRules");
     ul.innerHTML = rules.length ? rules.map(r=>`<li>${escapeHtml(r)}</li>`).join("") : "<li>No guidance set yet. Follow management guide.</li>";
 
-    // Auto-fill feeding form with selected pigeon + recommended grams
-    document.getElementById("feedPigeon").value = p.code;
-    if(p.recommended && p.recommended.morning_grams != null){
-      // If current time is closer to evening or morning, you can choose; we keep simple: put morning rec
-      document.getElementById("feedAmount").value = p.recommended.morning_grams;
-      document.getElementById("feedHint").innerText = `Auto-filled recommended grams for ${p.code}. You can change grams if needed.`;
-    }
-
     document.getElementById("modalBackdrop").style.display = "flex";
+
+    // After opening, update feeding auto-fill for current slot:
+    setRecommendedFromSelected();
   }
 
   function hideModal(){
@@ -399,6 +462,7 @@
     }
     const data = await res.json();
     currentPlan = data.plan;
+    currentSlot = computeSlotFromPlan(currentPlan);
 
     const parts = [];
     parts.push(`<b>${escapeHtml(data.message || "Plan active")}</b>`);
@@ -407,11 +471,16 @@
       parts.push(`Portions: Morning ${data.plan.morning_percent}% • Evening ${data.plan.evening_percent}%`);
       parts.push(`Hydration: ${escapeHtml(data.plan.hydration_note || "")}`);
     }
+    parts.push(`<span class="pill">Slot</span> Current slot: <b>${currentSlot.toUpperCase()}</b>`);
+
     if(data.breeding){
       parts.push(`<span class="pill">Breeding</span> Stage: <b>${escapeHtml(data.breeding.stage)}</b> • ${escapeHtml(data.breeding.notes || "")}`);
     }
     document.getElementById("planBanner").innerHTML = parts.join("<br>");
     document.getElementById("planTiny").innerText = data.plan ? `${data.plan.name} (${data.plan.morning_time}/${data.plan.evening_time})` : "—";
+
+    // if already selected a pigeon, refresh recommended for the correct slot
+    if(selectedPigeonObj) setRecommendedFromSelected();
   }
 
   async function loadPigeons(){
@@ -431,18 +500,18 @@
 
     pigeons.forEach(p=>{
       const rec = p.recommended || {};
+      const slotRec = (currentSlot==="evening") ? rec.evening_grams : rec.morning_grams;
       const item = document.createElement("div");
       item.className = "pigeon";
       item.innerHTML = `
         <div>
           <p class="pTitle">${escapeHtml(p.code)} <span class="pill">${escapeHtml(rec.plan || "Plan")}</span></p>
           <p class="pMeta">
-            Recommended: Morning <b>${rec.morning_grams ?? "-"}</b>g • Evening <b>${rec.evening_grams ?? "-"}</b>g
+            Slot ${currentSlot.toUpperCase()} recommended: <b>${slotRec ?? "-"}</b>g
           </p>
         </div>
-        <button class="btn btnPrimary" onclick='openModal(${JSON.stringify(p).replace(/'/g,"\\'")})'>View</button>
+        <button class="btn btnPrimary">View</button>
       `;
-      // Safer click binding:
       item.querySelector("button").onclick = ()=>openModal(p);
       list.appendChild(item);
     });
@@ -451,18 +520,28 @@
   async function submitFeed(){
     const pigeon_code = document.getElementById("feedPigeon").value.trim();
     const amount_grams = document.getElementById("feedAmount").value.trim();
+    const reason = document.getElementById("feedReason").value.trim();
+
     if(!pigeon_code || !amount_grams) return alert("Please fill pigeon code and grams.");
+
+    const grams = Number(amount_grams);
+    const over = (currentRec != null && Number.isFinite(grams) && grams > currentRec);
+    if(over && !reason) return alert("You fed more than recommended. Please write a reason.");
 
     const res = await fetch("/feed", {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       credentials:"include",
-      body: JSON.stringify({ pigeon_code, amount_grams })
+      body: JSON.stringify({ pigeon_code, amount_grams, feed_slot: currentSlot, reason })
     });
+
     const text = await res.text();
     if(!res.ok) return alert("Failed: " + text);
+
     alert(text);
     document.getElementById("feedAmount").value = "";
+    document.getElementById("feedReason").value = "";
+    checkOverfeed();
   }
 
   async function submitHealth(){
@@ -540,7 +619,6 @@
       list.innerHTML = `<div class="note">No notifications.</div>`;
       return;
     }
-
     rows.forEach(n=>{
       const div = document.createElement("div");
       div.className = "note";
@@ -564,8 +642,19 @@
   }
 
   // Init
-  loadPlan();
-  loadPigeons();
+  (async function init(){
+    await loadPlan();
+    await loadPigeons();
+    // refresh slot every minute (so at midday/evening it switches)
+    setInterval(async ()=>{
+      const oldSlot = currentSlot;
+      currentSlot = computeSlotFromPlan(currentPlan);
+      if(oldSlot !== currentSlot){
+        await loadPlan();
+        await loadPigeons();
+      }
+    }, 60000);
+  })();
 </script>
 </body>
 </html>

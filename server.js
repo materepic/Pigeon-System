@@ -49,9 +49,13 @@ db.serialize(() => {
       pigeon_code TEXT,
       amount_grams INTEGER,
       plan_name TEXT,
+      reason TEXT,
       time TEXT
     )
   `);
+
+  // If table existed before without reason column, add it (safe)
+  db.run(`ALTER TABLE feed_logs ADD COLUMN reason TEXT`, [], () => {});
 
   db.run(`
     CREATE TABLE IF NOT EXISTS health_reports (
@@ -180,7 +184,6 @@ db.serialize(() => {
 
 /* ---------- SEED DEFAULTS ---------- */
 function seedDefaults() {
-  // Plans
   const plans = [
     { name: "Base", morning_time: "06:00", evening_time: "17:30", morning_percent: 100, evening_percent: 100, hydration_note: "Fresh water always." },
     { name: "Race Prep", morning_time: "06:30", evening_time: "17:00", morning_percent: 90, evening_percent: 90, hydration_note: "Increase water checks; light feed." },
@@ -196,7 +199,6 @@ function seedDefaults() {
     );
   });
 
-  // Race plan rules
   const rules = [
     { min: 0, max: 0, plan: "Race Day", msg: "Race today: Race Day plan active (lighter portions + hydration)." },
     { min: 1, max: 3, plan: "Race Day", msg: "Race close: Race Day plan active (lighter portions + hydration)." },
@@ -214,39 +216,22 @@ function seedDefaults() {
     );
   });
 
-  // Seed a few guidance articles if none exist
   db.get("SELECT COUNT(*) AS c FROM guidance_articles", [], (err, row) => {
     if (err) return;
     if (row && row.c === 0) {
       const now = new Date().toISOString();
       const seed = [
-        {
-          category: "handling",
-          title: "Safe Handling",
-          season: "all",
-          content:
-            "Hold the pigeon firmly but gently.\nSupport chest and wings.\nAvoid squeezing.\nKeep handling short.\nWash/sanitize hands before and after.\nSeparate sick pigeons immediately.",
+        { category:"handling", title:"Safe Handling", season:"all",
+          content:"Hold firmly but gently.\nSupport chest and wings.\nAvoid squeezing.\nKeep handling short.\nSanitize hands.\nSeparate sick pigeons immediately."
         },
-        {
-          category: "newborn",
-          title: "Newly Born Chick Care",
-          season: "all",
-          content:
-            "Keep nest warm and dry.\nDo not over-handle newborns.\nCheck parents are feeding crop milk.\nObserve chick daily: warmth, movement, fullness.\nIf weak/not fed: notify management immediately.\nKeep bedding clean to reduce infection risk.",
+        { category:"newborn", title:"Newly Born Chick Care", season:"all",
+          content:"Keep nest warm and dry.\nDo not over-handle newborns.\nCheck parents are feeding crop milk.\nObserve chick daily.\nIf weak/not fed: notify management.\nKeep bedding clean."
         },
-        {
-          category: "race",
-          title: "Race Preparation Basics",
-          season: "race_prep",
-          content:
-            "Reduce heavy feed as race approaches.\nIncrease hydration checks.\nKeep loft calm; reduce stress.\nConfirm pigeon fitness; report any weakness.\nRecord all feedings accurately.",
+        { category:"race", title:"Race Preparation Basics", season:"race_prep",
+          content:"Reduce heavy feed as race approaches.\nIncrease hydration checks.\nKeep loft calm.\nConfirm fitness.\nRecord all feedings accurately."
         },
-        {
-          category: "breeding",
-          title: "Breeding Season Overview",
-          season: "all",
-          content:
-            "Pre-breeding: increase condition feed gradually.\nPairing: monitor bonding and aggression.\nIncubation: reduce disturbance; keep nest warm.\nHatching: keep clean; observe feeding.\nWeaning: introduce small feed gradually and monitor.",
+        { category:"breeding", title:"Breeding Season Overview", season:"all",
+          content:"Pre-breeding: improve condition gradually.\nPairing: monitor aggression.\nIncubation: reduce disturbance.\nHatching: keep clean.\nWeaning: introduce small feeds and monitor."
         },
       ];
 
@@ -279,14 +264,12 @@ function isoDayOnly(d) {
   return d.toISOString().slice(0, 10);
 }
 function parseISODateOnly(s) {
-  // "YYYY-MM-DD" -> Date at local noon to avoid timezone edge
   if (!s) return null;
   const [y, m, dd] = s.split("-").map((x) => parseInt(x, 10));
   if (!y || !m || !dd) return null;
   return new Date(y, m - 1, dd, 12, 0, 0);
 }
 function daysBetween(a, b) {
-  // b - a in days
   const ms = 24 * 60 * 60 * 1000;
   return Math.round((b.getTime() - a.getTime()) / ms);
 }
@@ -323,7 +306,6 @@ function getActiveBreedingCycle(cb) {
 }
 
 function choosePlan(nextRaceRow, cb) {
-  // default Base
   if (!nextRaceRow) return cb(null, { plan_name: "Base", message: "Base plan active.", race: null, days_to_race: null });
 
   const raceDate = parseISODateOnly(nextRaceRow.race_date);
@@ -362,39 +344,24 @@ function getPlanDetails(planName, cb) {
 }
 
 /* ---------- ROUTES ---------- */
-
-// Home -> login
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"));
-});
-
-// Protected pages
-app.get("/worker", requireLogin, (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "worker.html"));
-});
-app.get("/manager", requireManager, (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "manager.html"));
-});
-
-// Simple server check
-app.get("/healthz", (req, res) => {
-  res.json({ ok: true });
-});
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "login.html")));
+app.get("/worker", requireLogin, (req, res) => res.sendFile(path.join(__dirname, "public", "worker.html")));
+app.get("/manager", requireManager, (req, res) => res.sendFile(path.join(__dirname, "public", "manager.html")));
+app.get("/healthz", (req, res) => res.json({ ok: true }));
 
 /* LOGIN */
 app.post("/login", (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) return res.status(400).json({ status: "fail", reason: "Missing fields" });
 
-  // Manager
   const mUser = process.env.MANAGER_USER || "manager";
   const mPass = process.env.MANAGER_PASS || "admin123";
+
   if (username === mUser && password === mPass) {
     req.session.user = { role: "manager", name: "Manager" };
     return res.json({ status: "ok", role: "manager", name: "Manager" });
   }
 
-  // Worker (DB)
   db.get("SELECT * FROM workers WHERE name=? AND pin=? LIMIT 1", [username, password], (err, row) => {
     if (err) return res.status(500).json({ status: "fail" });
     if (!row) return res.json({ status: "fail" });
@@ -409,7 +376,7 @@ app.post("/logout", (req, res) => {
   req.session.destroy(() => res.json({ status: "ok" }));
 });
 
-/* WORKER: TODAY PLAN (race-aware + breeding stage) */
+/* WORKER: TODAY PLAN */
 app.get("/api/worker/today-plan", requireLogin, (req, res) => {
   getNextUpcomingRace((err, race) => {
     if (err) return res.status(500).json({});
@@ -444,7 +411,7 @@ app.get("/api/worker/today-plan", requireLogin, (req, res) => {
   });
 });
 
-/* WORKER: PIGEONS (profiles + recommended grams based on active plan) */
+/* WORKER: PIGEONS (profiles + recommended) */
 app.get("/api/worker/pigeons", requireLogin, (req, res) => {
   getNextUpcomingRace((err, race) => {
     if (err) return res.status(500).json([]);
@@ -487,26 +454,15 @@ app.get("/api/worker/pigeons", requireLogin, (req, res) => {
   });
 });
 
-/* WORKER: GUIDANCE LIBRARY (active articles) */
+/* WORKER: GUIDANCE */
 app.get("/api/worker/guidance", requireLogin, (req, res) => {
   const { category, season, q } = req.query || {};
-  const where = [];
+  const where = ["active=1"];
   const args = [];
 
-  where.push("active=1");
-
-  if (category) {
-    where.push("category=?");
-    args.push(category);
-  }
-  if (season) {
-    where.push("(season=? OR season='all')");
-    args.push(season);
-  }
-  if (q) {
-    where.push("(title LIKE ? OR content LIKE ?)");
-    args.push(`%${q}%`, `%${q}%`);
-  }
+  if (category) { where.push("category=?"); args.push(category); }
+  if (season) { where.push("(season=? OR season='all')"); args.push(season); }
+  if (q) { where.push("(title LIKE ? OR content LIKE ?)"); args.push(`%${q}%`, `%${q}%`); }
 
   db.all(
     `SELECT id,category,title,season,content,priority,updated_at
@@ -521,7 +477,7 @@ app.get("/api/worker/guidance", requireLogin, (req, res) => {
   );
 });
 
-/* WORKER: NOTIFICATIONS (unresolved, audience worker/all) */
+/* WORKER: NOTIFICATIONS (unresolved, worker/all only) */
 app.get("/api/worker/notifications", requireLogin, (req, res) => {
   db.all(
     `SELECT id,audience,severity,title,message,link,pigeon_code,worker_name,created_at
@@ -537,33 +493,83 @@ app.get("/api/worker/notifications", requireLogin, (req, res) => {
   );
 });
 
-/* FEED (worker records) */
+/* FEED (worker records + require reason if over recommended) */
 app.post("/feed", requireLogin, (req, res) => {
-  const { pigeon_code, amount_grams } = req.body || {};
+  const { pigeon_code, amount_grams, feed_slot, reason } = req.body || {};
   if (!pigeon_code || !amount_grams) return res.status(400).send("Missing pigeon_code or amount_grams");
 
   const workerName = req.session.user.name;
+  const grams = parseInt(amount_grams, 10);
+  const slot = String(feed_slot || "").toLowerCase(); // "morning" or "evening"
+  const reasonText = (reason || "").trim();
 
   getNextUpcomingRace((err, race) => {
     if (err) return res.status(500).send("Error");
+
     choosePlan(race, (err2, chosen) => {
       if (err2) return res.status(500).send("Error");
 
-      const time = nowStr();
-      db.run(
-        `INSERT INTO feed_logs(worker_name,pigeon_code,amount_grams,plan_name,time)
-         VALUES(?,?,?,?,?)`,
-        [workerName, pigeon_code, parseInt(amount_grams, 10), chosen.plan_name, time],
-        (err3) => {
-          if (err3) return res.status(500).send("DB error");
-          res.send("Feeding recorded");
-        }
-      );
+      getPlanDetails(chosen.plan_name, (err3, plan) => {
+        if (err3) return res.status(500).send("Error");
+
+        db.get(
+          `SELECT morning_base_grams, evening_base_grams FROM pigeons WHERE code=? LIMIT 1`,
+          [pigeon_code],
+          (err4, pigeonRow) => {
+            if (err4) return res.status(500).send("DB error");
+            if (!pigeonRow) return res.status(400).send("Unknown pigeon code");
+
+            const baseMorning = pigeonRow.morning_base_grams ?? null;
+            const baseEvening = pigeonRow.evening_base_grams ?? null;
+
+            // compute recommended based on slot + plan %
+            let recommended = null;
+            if (slot === "evening") {
+              recommended = baseEvening != null ? Math.round((baseEvening * (plan.evening_percent || 100)) / 100) : null;
+            } else {
+              // default to morning if not passed
+              recommended = baseMorning != null ? Math.round((baseMorning * (plan.morning_percent || 100)) / 100) : null;
+            }
+
+            const isOver = (recommended != null && grams > recommended);
+
+            if (isOver && !reasonText) {
+              return res.status(400).send(`Reason required: fed ${grams}g > recommended ${recommended}g`);
+            }
+
+            const time = nowStr();
+            db.run(
+              `INSERT INTO feed_logs(worker_name,pigeon_code,amount_grams,plan_name,reason,time)
+               VALUES(?,?,?,?,?,?)`,
+              [workerName, pigeon_code, grams, chosen.plan_name, reasonText || null, time],
+              (err5) => {
+                if (err5) return res.status(500).send("DB error");
+
+                // Notification for EVERY feeding (manager)
+                const title = "Feeding Logged";
+                const sev = isOver ? "warning" : "info";
+                const msg =
+                  `${workerName} fed ${pigeon_code}: ${grams}g (${chosen.plan_name}).` +
+                  (recommended != null ? ` Recommended: ${recommended}g.` : "") +
+                  (isOver ? ` Reason: ${reasonText}` : "");
+
+                db.run(
+                  `INSERT INTO notifications(audience,severity,title,message,link,pigeon_code,worker_name,created_at,resolved)
+                   VALUES('manager',?,?,?,?,?,?,?,0)`,
+                  [sev, title, msg, "/manager", pigeon_code, workerName, time]
+                );
+
+                res.send("Feeding recorded");
+              }
+            );
+          }
+        );
+      });
     });
   });
 });
 
-/* HEALTH REPORT (worker records + notification triggers) */
+/* HEALTH REPORT (notify manager for EVERY report) */
 app.post("/health", requireLogin, (req, res) => {
   const { pigeon_code, issue } = req.body || {};
   if (!pigeon_code || !issue) return res.status(400).json({ status: "fail", reason: "Missing fields" });
@@ -583,17 +589,19 @@ app.post("/health", requireLogin, (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ status: "fail" });
 
-      // Create manager notification for warning/critical
-      if (severity === "critical" || severity === "warning") {
-        const created_at = nowStr();
-        const title = severity === "critical" ? "Critical Health Alert" : "Health Warning";
-        const msg = `${pigeon_code} reported "${issue}" by ${workerName}. Guidance: ${advice}`;
-        db.run(
-          `INSERT INTO notifications(audience,severity,title,message,link,pigeon_code,worker_name,created_at,resolved)
-           VALUES('manager',?,?,?,?,?,?,?,0)`,
-          [severity, title, msg, "/manager", pigeon_code, workerName, created_at]
-        );
-      }
+      // Notification for EVERY health report (manager)
+      const title =
+        severity === "critical" ? "Critical Health Alert" :
+        severity === "warning" ? "Health Warning" :
+        "Health Report Logged";
+
+      const msg = `${pigeon_code} issue by ${workerName}: "${issue}". Guidance: ${advice}`;
+
+      db.run(
+        `INSERT INTO notifications(audience,severity,title,message,link,pigeon_code,worker_name,created_at,resolved)
+         VALUES('manager',?,?,?,?,?,?,?,0)`,
+        [severity, title, msg, "/manager", pigeon_code, workerName, time]
+      );
 
       res.json({ status: "ok", advice, severity });
     }
@@ -601,8 +609,6 @@ app.post("/health", requireLogin, (req, res) => {
 });
 
 /* ---------- MANAGER APIs ---------- */
-
-/* Workers */
 app.get("/api/manager/workers", requireManager, (req, res) => {
   db.all("SELECT id,name FROM workers ORDER BY id DESC", [], (err, rows) => {
     if (err) return res.status(500).json([]);
@@ -627,38 +633,14 @@ app.delete("/api/manager/workers/:id", requireManager, (req, res) => {
   });
 });
 
-/* Feeding Logs */
+/* Feeding Logs (include reason) */
 app.get("/api/manager/feed-logs", requireManager, (req, res) => {
-  const { from, to, worker, pigeon } = req.query || {};
-  const where = [];
-  const args = [];
-
-  if (from) {
-    where.push("time >= ?");
-    args.push(from);
-  }
-  if (to) {
-    where.push("time <= ?");
-    args.push(to);
-  }
-  if (worker) {
-    where.push("worker_name = ?");
-    args.push(worker);
-  }
-  if (pigeon) {
-    where.push("pigeon_code = ?");
-    args.push(pigeon);
-  }
-
-  const w = where.length ? `WHERE ${where.join(" AND ")}` : "";
-
   db.all(
-    `SELECT id,worker_name AS worker,pigeon_code AS pigeonId,amount_grams AS amount,plan_name,time
+    `SELECT id,worker_name AS worker,pigeon_code AS pigeonId,amount_grams AS amount,plan_name,reason,time
      FROM feed_logs
-     ${w}
      ORDER BY id DESC
      LIMIT 500`,
-    args,
+    [],
     (err, rows) => {
       if (err) return res.status(500).json([]);
       res.json(rows);
@@ -697,20 +679,10 @@ app.post("/api/manager/pigeons", requireManager, (req, res) => {
     `INSERT INTO pigeons(code,name,sex,breed,color,dob,status,loft_section,pair_code,morning_base_grams,evening_base_grams,diet_type,guidance,notes)
      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
-      p.code.trim(),
-      p.name || "",
-      p.sex || "",
-      p.breed || "",
-      p.color || "",
-      p.dob || "",
-      p.status || "active",
-      p.loft_section || "",
-      p.pair_code || "",
-      p.morning_base_grams ?? null,
-      p.evening_base_grams ?? null,
-      p.diet_type || "standard",
-      p.guidance || "",
-      p.notes || "",
+      p.code.trim(), p.name || "", p.sex || "", p.breed || "", p.color || "", p.dob || "",
+      p.status || "active", p.loft_section || "", p.pair_code || "",
+      p.morning_base_grams ?? null, p.evening_base_grams ?? null,
+      p.diet_type || "standard", p.guidance || "", p.notes || "",
     ],
     (err) => {
       if (err) return res.status(500).send("DB error (duplicate code?)");
@@ -729,19 +701,10 @@ app.put("/api/manager/pigeons/:code", requireManager, (req, res) => {
       morning_base_grams=?,evening_base_grams=?,diet_type=?,guidance=?,notes=?
      WHERE code=?`,
     [
-      p.name || "",
-      p.sex || "",
-      p.breed || "",
-      p.color || "",
-      p.dob || "",
-      p.status || "active",
-      p.loft_section || "",
-      p.pair_code || "",
-      p.morning_base_grams ?? null,
-      p.evening_base_grams ?? null,
-      p.diet_type || "standard",
-      p.guidance || "",
-      p.notes || "",
+      p.name || "", p.sex || "", p.breed || "", p.color || "", p.dob || "",
+      p.status || "active", p.loft_section || "", p.pair_code || "",
+      p.morning_base_grams ?? null, p.evening_base_grams ?? null,
+      p.diet_type || "standard", p.guidance || "", p.notes || "",
       code,
     ],
     (err) => {
@@ -776,24 +739,11 @@ app.post("/api/manager/races", requireManager, (req, res) => {
     [r.title.trim(), r.location || "", r.race_date, r.status || "upcoming", r.distance_km ?? null, r.notes || ""],
     (err) => {
       if (err) return res.status(500).send("DB error");
-      // Notification to all that a race exists
       db.run(
         `INSERT INTO notifications(audience,severity,title,message,link,created_at,resolved)
          VALUES('all','info',?,?,?, ?,0)`,
         ["New Race Added", `${r.title} on ${r.race_date}. Plan will adjust automatically as it gets closer.`, "/worker", nowStr()]
       );
-      res.send("ok");
-    }
-  );
-});
-
-app.put("/api/manager/races/:id", requireManager, (req, res) => {
-  const r = req.body || {};
-  db.run(
-    `UPDATE races SET title=?,location=?,race_date=?,status=?,distance_km=?,notes=? WHERE id=?`,
-    [r.title || "", r.location || "", r.race_date || "", r.status || "upcoming", r.distance_km ?? null, r.notes || "", req.params.id],
-    (err) => {
-      if (err) return res.status(500).send("DB error");
       res.send("ok");
     }
   );
@@ -806,7 +756,7 @@ app.delete("/api/manager/races/:id", requireManager, (req, res) => {
   });
 });
 
-/* Breeding cycles (simple manager controls) */
+/* Breeding cycles */
 app.get("/api/manager/breeding", requireManager, (req, res) => {
   db.all("SELECT * FROM breeding_cycles ORDER BY id DESC", [], (err, rows) => {
     if (err) return res.status(500).json([]);
@@ -818,7 +768,6 @@ app.post("/api/manager/breeding", requireManager, (req, res) => {
   const b = req.body || {};
   if (!b.start_date || !b.end_date || !b.stage) return res.status(400).send("start_date, end_date, stage required");
 
-  // Only one active cycle at a time (optional)
   db.run("UPDATE breeding_cycles SET active=0", [], () => {
     db.run(
       `INSERT INTO breeding_cycles(start_date,end_date,stage,notes,active) VALUES(?,?,?,?,1)`,
@@ -836,7 +785,7 @@ app.post("/api/manager/breeding", requireManager, (req, res) => {
   });
 });
 
-/* Guidance Articles CRUD */
+/* Guidance CRUD */
 app.get("/api/manager/guidance", requireManager, (req, res) => {
   db.all(
     `SELECT id,category,title,season,content,priority,active,updated_by,updated_at
@@ -888,7 +837,7 @@ app.delete("/api/manager/guidance/:id", requireManager, (req, res) => {
   });
 });
 
-/* Notifications (manager) */
+/* Notifications manager */
 app.get("/api/manager/notifications", requireManager, (req, res) => {
   const resolved = req.query?.resolved === "1" ? 1 : 0;
   db.all(
@@ -916,11 +865,8 @@ app.post("/api/manager/notifications/:id/resolve", requireManager, (req, res) =>
   );
 });
 
-/* REPORTS: Weekly summary (simple) */
+/* Reports summary */
 app.get("/api/manager/reports/summary", requireManager, (req, res) => {
-  // last 7 days (rough string filter by time text isn't perfect; ok for now)
-  // For production, store ISO timestamps. We'll keep simple.
-
   db.get("SELECT COUNT(*) AS c FROM feed_logs", [], (err, feedsCount) => {
     if (err) return res.status(500).json({});
     db.get("SELECT COUNT(*) AS c FROM health_reports", [], (err2, healthCount) => {
@@ -941,15 +887,13 @@ app.get("/api/manager/reports/summary", requireManager, (req, res) => {
   });
 });
 
-/* EXPORTS (CSV) */
+/* EXPORTS (include reason for feeds) */
 app.get("/api/manager/export/feed_logs.csv", requireManager, (req, res) => {
-  db.all(`SELECT worker_name,pigeon_code,amount_grams,plan_name,time FROM feed_logs ORDER BY id DESC`, [], (err, rows) => {
+  db.all(`SELECT worker_name,pigeon_code,amount_grams,plan_name,reason,time FROM feed_logs ORDER BY id DESC`, [], (err, rows) => {
     if (err) return res.status(500).send("DB error");
-    const header = ["worker_name", "pigeon_code", "amount_grams", "plan_name", "time"];
+    const header = ["worker_name", "pigeon_code", "amount_grams", "plan_name", "reason", "time"];
     const lines = [header.join(",")].concat(
-      rows.map((r) =>
-        [r.worker_name, r.pigeon_code, r.amount_grams, r.plan_name, r.time].map(csvEscape).join(",")
-      )
+      rows.map((r) => [r.worker_name, r.pigeon_code, r.amount_grams, r.plan_name, r.reason, r.time].map(csvEscape).join(","))
     );
     res.setHeader("Content-Type", "text/csv");
     res.setHeader("Content-Disposition", `attachment; filename="feed_logs.csv"`);
@@ -962,9 +906,7 @@ app.get("/api/manager/export/health_reports.csv", requireManager, (req, res) => 
     if (err) return res.status(500).send("DB error");
     const header = ["worker_name", "pigeon_code", "issue", "advice", "severity", "time"];
     const lines = [header.join(",")].concat(
-      rows.map((r) =>
-        [r.worker_name, r.pigeon_code, r.issue, r.advice, r.severity, r.time].map(csvEscape).join(",")
-      )
+      rows.map((r) => [r.worker_name, r.pigeon_code, r.issue, r.advice, r.severity, r.time].map(csvEscape).join(","))
     );
     res.setHeader("Content-Type", "text/csv");
     res.setHeader("Content-Disposition", `attachment; filename="health_reports.csv"`);
@@ -976,11 +918,7 @@ app.get("/api/manager/export/pigeons.csv", requireManager, (req, res) => {
   db.all(`SELECT code,name,sex,breed,color,dob,status,loft_section,pair_code,morning_base_grams,evening_base_grams,diet_type,notes FROM pigeons ORDER BY code ASC`, [], (err, rows) => {
     if (err) return res.status(500).send("DB error");
     const header = ["code","name","sex","breed","color","dob","status","loft_section","pair_code","morning_base_grams","evening_base_grams","diet_type","notes"];
-    const lines = [header.join(",")].concat(
-      rows.map((r) =>
-        header.map((k)=>csvEscape(r[k])).join(",")
-      )
-    );
+    const lines = [header.join(",")].concat(rows.map((r)=> header.map((k)=>csvEscape(r[k])).join(",")));
     res.setHeader("Content-Type", "text/csv");
     res.setHeader("Content-Disposition", `attachment; filename="pigeons.csv"`);
     res.send(lines.join("\n"));
@@ -991,11 +929,7 @@ app.get("/api/manager/export/races.csv", requireManager, (req, res) => {
   db.all(`SELECT title,location,race_date,status,distance_km,notes FROM races ORDER BY race_date ASC`, [], (err, rows) => {
     if (err) return res.status(500).send("DB error");
     const header = ["title","location","race_date","status","distance_km","notes"];
-    const lines = [header.join(",")].concat(
-      rows.map((r) =>
-        header.map((k)=>csvEscape(r[k])).join(",")
-      )
-    );
+    const lines = [header.join(",")].concat(rows.map((r)=> header.map((k)=>csvEscape(r[k])).join(",")));
     res.setHeader("Content-Type", "text/csv");
     res.setHeader("Content-Disposition", `attachment; filename="races.csv"`);
     res.send(lines.join("\n"));
@@ -1004,6 +938,4 @@ app.get("/api/manager/export/races.csv", requireManager, (req, res) => {
 
 /* ---------- START ---------- */
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
-});
+app.listen(PORT, () => console.log("Server running on port " + PORT));

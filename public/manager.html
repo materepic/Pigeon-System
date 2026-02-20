@@ -302,7 +302,7 @@
         <div class="cardBody">
           <div class="tableWrap">
             <table>
-              <thead><tr><th>Worker</th><th>Pigeon</th><th>Amount</th><th>Plan</th><th>Time</th></tr></thead>
+             <thead><tr><th>Worker</th><th>Pigeon</th><th>Amount</th><th>Plan</th><th>Reason</th><th>Time</th></tr></thead>
               <tbody id="feedsBody"></tbody>
             </table>
           </div>
@@ -728,6 +728,7 @@
         <td>${escapeHtml(r.pigeonId||"")}</td>
         <td>${escapeHtml(r.amount||"")}</td>
         <td>${escapeHtml(r.plan_name||r.plan_name||r.plan||r.plan_name||r.plan_name||r.plan||r.plan_name||r.plan_name||r.plan||r.plan||r.plan_name||r.plan_name||r.plan||r.plan_name||r.plan||r.plan_name||r.plan_name||r.plan||r.plan_name||r.plan||r.plan_name||r.plan_name||r.plan||r.plan_name||r.plan||r.plan_name||r.plan_name||r.plan||r.plan_name||r.plan||r.plan_name||r.plan_name||r.plan||r.plan||r.plan_name||r.plan_name||r.plan||r.plan_name||r.plan||r.plan_name||r.plan_name||r.plan||r.plan_name||r.plan||r.plan_name||r.plan_name||r.plan||"" )}</td>
+        <td>${escapeHtml(r.reason||"")}</td>
         <td>${escapeHtml(r.time||"")}</td>
       `;
       // if plan field name differs, server returns plan_name; keep safe:
