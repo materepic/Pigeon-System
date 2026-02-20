@@ -3,53 +3,153 @@
 <head>
   <title>Pigeon System Login</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="manifest" href="manifest.json">
+
   <style>
-    body{font-family:Arial;text-align:center;background:#eef2f7;padding-top:60px;}
-    input{padding:12px;margin:10px;font-size:16px;width:260px;}
-    button{padding:12px 18px;font-size:16px;cursor:pointer;}
-    .card{display:inline-block;background:white;padding:24px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.1);}
+    :root{
+      --card: rgba(255,255,255,0.10);
+      --stroke: rgba(255,255,255,0.14);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.70);
+      --accent: #2d89ef;
+      --accent2: #00c2a8;
+      --shadow: 0 18px 45px rgba(0,0,0,0.35);
+      --radius: 18px;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color: var(--text);
+      min-height:100vh;
+      background:
+        linear-gradient(120deg, rgba(11,18,32,0.78), rgba(11,18,32,0.58)),
+        url("pigeon.jpeg");
+      background-size: cover;
+      background-position: center;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+    }
+
+    .card{
+      width:min(520px, 100%);
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      overflow:hidden;
+    }
+    .head{
+      padding: 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      display:flex;
+      align-items:center;
+      gap: 12px;
+    }
+    .badge{
+      width:44px;height:44px;border-radius:14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      box-shadow: var(--shadow);
+    }
+    h1{ margin:0; font-size:18px; }
+    p{ margin:4px 0 0; color: var(--muted); font-size:12px; }
+
+    .body{ padding: 18px; }
+
+    input{
+      width:100%;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.20);
+      color: var(--text);
+      outline:none;
+      margin-top: 10px;
+    }
+    input::placeholder{ color: rgba(255,255,255,0.55); }
+
+    .btn{
+      width:100%;
+      border:none;
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), #5aa7ff);
+      color:white;
+      font-weight: 800;
+      cursor:pointer;
+    }
+
+    .msg{
+      margin-top: 12px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.85);
+      background: rgba(0,0,0,0.18);
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 10px 12px;
+      border-radius: 14px;
+      display:none;
+      line-height:1.35;
+    }
   </style>
 </head>
-<body>
 
+<body>
   <div class="card">
-    <h2>Login</h2>
-    <input id="username" placeholder="Username"><br>
-    <input id="password" placeholder="Password / PIN" type="password"><br>
-    <button type="button" onclick="login()">Login</button>
+    <div class="head">
+      <div class="badge"></div>
+      <div>
+        <h1>Pigeon Management System</h1>
+        <p>Login as Manager or Worker</p>
+      </div>
+    </div>
+
+    <div class="body">
+      <input id="username" placeholder="Username (manager OR worker name)">
+      <input id="password" placeholder="Password / PIN" type="password">
+      <button class="btn" onclick="login()">Login</button>
+
+      <div class="msg" id="msg"></div>
+
+      <div class="msg" style="display:block;margin-top:14px;">
+        <b>Note:</b> Workers can only login after the manager creates them in the Manager Dashboard (Workers section).
+      </div>
+    </div>
   </div>
 
 <script>
-async function login(){
-  const username = document.getElementById("username").value.trim();
-  const password = document.getElementById("password").value.trim();
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").catch(()=>{});
+  }
 
-  if(!username || !password) return alert("Enter username and password/PIN");
+  function showMsg(t){
+    const el = document.getElementById("msg");
+    el.style.display = "";
+    el.innerText = t;
+  }
 
-  try{
-    const res = await fetch("/login",{
+  async function login(){
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+    if(!username || !password) return showMsg("Please enter username and password/PIN.");
+
+    const res = await fetch("/login", {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       credentials:"include",
       body: JSON.stringify({ username, password })
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(()=>null);
+    if(!data || data.status !== "ok") return showMsg("Invalid login. Check details.");
 
-    if(data.status === "ok"){
-      if(data.role === "manager"){
-        window.location = "/manager";
-      } else {
-        window.location = "/worker";
-      }
-    } else {
-      alert("Invalid login");
-    }
-  }catch(e){
-    console.log(e);
-    alert("Server not reachable");
+    if(data.role === "manager") window.location = "/manager";
+    else window.location = "/worker";
   }
-}
 </script>
 </body>
 </html>

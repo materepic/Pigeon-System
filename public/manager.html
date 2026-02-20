@@ -3,10 +3,10 @@
 <head>
   <title>Manager Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="manifest" href="manifest.json">
 
   <style>
     :root{
-      --bg: #0b1220;
       --card: rgba(255,255,255,0.10);
       --card2: rgba(255,255,255,0.14);
       --stroke: rgba(255,255,255,0.14);
@@ -18,13 +18,12 @@
       --shadow: 0 18px 45px rgba(0,0,0,0.35);
       --radius: 18px;
     }
-
-    *{ box-sizing: border-box; }
-    html,body{ height:100%; }
+    *{ box-sizing:border-box; }
     body{
       margin:0;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
       color: var(--text);
+      min-height:100vh;
       background:
         linear-gradient(120deg, rgba(11,18,32,0.78), rgba(11,18,32,0.58)),
         url("pigeon.jpeg");
@@ -33,80 +32,14 @@
       background-attachment: fixed;
     }
 
-    .wrap{
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 16px 16px 28px;
-    }
+    .wrap{ max-width: 1200px; margin:0 auto; padding: 16px 16px 28px; }
+    .topbar{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+    .leftTop{ display:flex; align-items:center; gap: 12px; }
+    .brand{ display:flex; align-items:center; gap:10px; }
+    .badge{ width:42px;height:42px;border-radius:14px; background: linear-gradient(135deg,var(--accent),var(--accent2)); box-shadow: var(--shadow); }
+    h1{ margin:0; font-size:18px; }
+    .sub{ margin:2px 0 0; font-size:12px; color: var(--muted); }
 
-    /* Topbar */
-    .topbar{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .leftTop{
-      display:flex;
-      align-items:center;
-      gap: 12px;
-    }
-
-    /* Hamburger (top-left) */
-    .hamburger{
-      width: 46px;
-      height: 46px;
-      border-radius: 16px;
-      border: 1px solid var(--stroke);
-      background: rgba(255,255,255,0.08);
-      box-shadow: var(--shadow);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
-      user-select:none;
-      transition: transform .05s ease, background .2s ease;
-    }
-    .hamburger:active{ transform: scale(0.99); }
-    .hamburgerLines{
-      width: 20px;
-      height: 14px;
-      display:flex;
-      flex-direction:column;
-      justify-content:space-between;
-    }
-    .hamburgerLines span{
-      height: 2px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.90);
-    }
-
-    .brand{
-      display:flex;
-      align-items:center;
-      gap: 10px;
-    }
-    .brandBadge{
-      width: 42px;
-      height: 42px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      box-shadow: var(--shadow);
-    }
-    .brand h1{
-      margin:0;
-      font-size: 18px;
-      letter-spacing: 0.2px;
-    }
-    .brand p{
-      margin:2px 0 0;
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    /* Buttons */
     .btn{
       border: 1px solid var(--stroke);
       background: rgba(255,255,255,0.08);
@@ -114,38 +47,68 @@
       padding: 10px 12px;
       border-radius: 14px;
       cursor:pointer;
-      transition: transform .05s ease, background .2s ease;
-      user-select:none;
-      font-weight: 600;
+      font-weight:700;
       font-size: 13px;
     }
-    .btn:active{ transform: scale(0.99); }
-    .btnPrimary{
-      border: none;
-      background: linear-gradient(135deg, var(--accent), #5aa7ff);
-      color: white;
-      font-weight: 700;
+    .btnPrimary{ border:none; background: linear-gradient(135deg,var(--accent),#5aa7ff); color:#fff; }
+    .btnDanger{ border:none; background: linear-gradient(135deg,var(--danger),#ff7a90); color:#fff; }
+    .btnSmall{ padding: 8px 10px; border-radius: 12px; font-size: 12px; }
+
+    /* Hamburger */
+    .hamburger{
+      width: 46px; height:46px;
+      border-radius: 16px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.08);
+      box-shadow: var(--shadow);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer;
     }
-    .btnDanger{
-      border: none;
-      background: linear-gradient(135deg, var(--danger), #ff7a90);
-      color: white;
-      font-weight: 700;
+    .lines{ width:20px; height:14px; display:flex; flex-direction:column; justify-content:space-between; }
+    .lines span{ height:2px; border-radius:999px; background: rgba(255,255,255,0.9); }
+
+    /* Sidebar */
+    .sidebarBackdrop{
+      position: fixed; inset:0; background: rgba(0,0,0,0.55);
+      display:none; z-index: 9998;
     }
-    .btnSmall{
-      padding: 8px 10px;
-      border-radius: 12px;
-      font-size: 12px;
+    .sidebar{
+      position: fixed; top:0; left:0; height:100%;
+      width: 320px; max-width: 90vw;
+      background: rgba(16,24,40,0.92);
+      border-right: 1px solid rgba(255,255,255,0.14);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      transform: translateX(-105%);
+      transition: transform .18s ease;
+      z-index: 9999;
+      display:flex; flex-direction:column;
+    }
+    .sidebar.open{ transform: translateX(0); }
+    .sidebarTop{
+      padding: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+    }
+    .nav{ padding: 12px; display:flex; flex-direction:column; gap:8px; }
+    .navItem{
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.82);
+      cursor:pointer;
+      user-select:none;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .navItem.active{
+      background: rgba(45,137,239,0.25);
+      border-color: rgba(45,137,239,0.45);
+      color: var(--text);
     }
 
-    /* Layout */
-    .grid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 14px;
-    }
-
-    /* Cards */
+    .grid{ display:grid; grid-template-columns: 1fr; gap:14px; }
     .card{
       background: var(--card);
       border: 1px solid var(--stroke);
@@ -155,27 +118,17 @@
       backdrop-filter: blur(10px);
     }
     .cardHead{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
       padding: 14px 14px 12px;
       border-bottom: 1px solid rgba(255,255,255,0.10);
-      gap: 10px;
-      flex-wrap: wrap;
+      display:flex; justify-content:space-between; align-items:center;
+      gap:10px; flex-wrap:wrap;
     }
-    .cardHead h2{
-      margin:0;
-      font-size: 14px;
-      letter-spacing: 0.2px;
-    }
-    .cardHead .sub{
-      font-size: 12px;
-      color: var(--muted);
-      font-weight: 500;
-    }
+    .cardHead h2{ margin:0; font-size:14px; }
     .cardBody{ padding: 14px; }
 
-    /* Inputs */
+    .twoCol{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    @media (max-width: 980px){ .twoCol{ grid-template-columns:1fr; } }
+
     input, textarea, select{
       width:100%;
       padding: 12px;
@@ -183,20 +136,13 @@
       border: 1px solid rgba(255,255,255,0.16);
       background: rgba(0,0,0,0.20);
       color: var(--text);
-      outline: none;
+      outline:none;
     }
     input::placeholder, textarea::placeholder{ color: rgba(255,255,255,0.55); }
     textarea{ min-height: 100px; resize: vertical; }
 
-    .formRow{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    @media (max-width: 760px){
-      .formRow{ grid-template-columns: 1fr; }
-    }
+    .formRow{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px; }
+    @media (max-width: 760px){ .formRow{ grid-template-columns:1fr; } }
 
     .helper{
       font-size: 12px;
@@ -209,7 +155,6 @@
       margin-top: 10px;
     }
 
-    /* Tables */
     .tableWrap{
       overflow:auto;
       border-radius: 16px;
@@ -220,7 +165,7 @@
       width:100%;
       border-collapse: collapse;
       font-size: 12px;
-      min-width: 720px;
+      min-width: 760px;
     }
     th,td{
       padding: 10px 10px;
@@ -230,108 +175,29 @@
       color: var(--text);
     }
     th{
-      position: sticky;
-      top: 0;
+      position: sticky; top:0;
       background: rgba(45,137,239,0.22);
       border-bottom: 1px solid rgba(45,137,239,0.35);
       color: rgba(255,255,255,0.92);
-      font-weight: 800;
-      letter-spacing: 0.2px;
+      font-weight: 900;
       z-index: 2;
     }
-
-    /* Sidebar */
-    .sidebarBackdrop{
-      position: fixed;
-      inset:0;
-      background: rgba(0,0,0,0.55);
-      display:none;
-      z-index: 9998;
-    }
-    .sidebar{
-      position: fixed;
-      top: 0;
-      left: 0;
-      height: 100%;
-      width: 310px;
-      max-width: 88vw;
-      background: rgba(16,24,40,0.92);
-      border-right: 1px solid rgba(255,255,255,0.14);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(12px);
-      transform: translateX(-105%);
-      transition: transform .18s ease;
-      z-index: 9999;
-      display:flex;
-      flex-direction: column;
-    }
-    .sidebar.open{ transform: translateX(0); }
-    .sidebarTop{
-      padding: 16px;
-      border-bottom: 1px solid rgba(255,255,255,0.10);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 10px;
-    }
-    .sidebarTitle{
-      margin:0;
-      font-size: 14px;
-      font-weight: 800;
-    }
-    .nav{
-      padding: 12px;
-      display:flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .navItem{
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.82);
-      cursor:pointer;
-      user-select:none;
-      font-size: 13px;
-      font-weight: 700;
-    }
-    .navItem.active{
-      background: rgba(45,137,239,0.25);
-      border-color: rgba(45,137,239,0.45);
-      color: var(--text);
-    }
-
-    .twoCol{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-    @media (max-width: 980px){
-      .twoCol{ grid-template-columns: 1fr; }
-    }
-
     .pill{
-      display:inline-block;
-      padding: 4px 8px;
-      border-radius: 999px;
-      font-size: 11px;
-      background: rgba(45,137,239,0.22);
+      display:inline-block; padding: 4px 8px; border-radius: 999px;
+      font-size: 11px; background: rgba(45,137,239,0.22);
       border: 1px solid rgba(45,137,239,0.35);
-      color: rgba(255,255,255,0.92);
-      vertical-align: middle;
+      margin-left: 8px;
     }
   </style>
 </head>
 
 <body>
-  <!-- Sidebar -->
   <div class="sidebarBackdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
   <div class="sidebar" id="sidebar">
     <div class="sidebarTop">
       <div>
-        <div class="sidebarTitle">Manager Menu</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Switch sections</div>
+        <div style="font-weight:900;">Manager Menu</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Choose a section</div>
       </div>
       <button class="btn btnSmall" onclick="toggleSidebar(false)">Close</button>
     </div>
@@ -342,32 +208,32 @@
       <div class="navItem" id="navHealth" onclick="go('health')">Health Reports</div>
       <div class="navItem" id="navPigeons" onclick="go('pigeons')">Pigeons</div>
       <div class="navItem" id="navRaces" onclick="go('races')">Races</div>
+      <div class="navItem" id="navGuidance" onclick="go('guidance')">Guidance</div>
+      <div class="navItem" id="navNotifs" onclick="go('notifs')">Notifications</div>
+      <div class="navItem" id="navReports" onclick="go('reports')">Reports</div>
     </div>
 
     <div style="margin-top:auto;padding:12px;">
       <button class="btn btnDanger" style="width:100%" onclick="logout()">Logout</button>
-      <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.4;">
-        Tip: Use <b>Pigeons</b> to set feeding guidance. Workers will see it in their Control Panel.
+      <div class="helper" style="margin-top:10px;">
+        Pigeon guidance here updates the Worker Control Panel automatically.
       </div>
     </div>
   </div>
 
   <div class="wrap">
 
-    <!-- Topbar -->
     <div class="topbar">
       <div class="leftTop">
-        <div class="hamburger" onclick="toggleSidebar(true)" title="Menu">
-          <div class="hamburgerLines">
-            <span></span><span></span><span></span>
-          </div>
+        <div class="hamburger" onclick="toggleSidebar(true)">
+          <div class="lines"><span></span><span></span><span></span></div>
         </div>
 
         <div class="brand">
-          <div class="brandBadge"></div>
+          <div class="badge"></div>
           <div>
             <h1>Manager Dashboard</h1>
-            <p id="sectionHint">Workers</p>
+            <div class="sub" id="sectionHint">Workers</div>
           </div>
         </div>
       </div>
@@ -381,14 +247,13 @@
     <div class="grid">
 
       <!-- WORKERS -->
-      <div class="card" id="section_workers">
+      <div class="card" id="sec_workers">
         <div class="cardHead">
           <div>
-            <h2>Workers <span class="pill">Manage access</span></h2>
-            <div class="sub">Add or remove workers and their PINs.</div>
+            <h2>Workers <span class="pill">Access</span></h2>
+            <div class="sub">Create workers and manage their login PINs.</div>
           </div>
         </div>
-
         <div class="cardBody">
           <div class="twoCol">
             <div class="card" style="box-shadow:none;background:rgba(255,255,255,0.06);">
@@ -412,88 +277,70 @@
               <div class="cardBody">
                 <div class="tableWrap">
                   <table>
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
+                    <thead><tr><th>ID</th><th>Name</th><th>Action</th></tr></thead>
                     <tbody id="workersBody"></tbody>
                   </table>
                 </div>
-                <div class="helper">Workers log in using <b>Name</b> + <b>PIN</b>.</div>
+                <div class="helper">Workers login with <b>Name</b> + <b>PIN</b>.</div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- FEED LOGS -->
-      <div class="card" id="section_feeds" style="display:none;">
+      <!-- FEEDS -->
+      <div class="card" id="sec_feeds" style="display:none;">
         <div class="cardHead">
           <div>
-            <h2>Feeding Logs <span class="pill">Full history</span></h2>
-            <div class="sub">All feeding entries recorded by workers.</div>
+            <h2>Feeding Logs <span class="pill">History</span></h2>
+            <div class="sub">All feeding records recorded by workers.</div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a class="btn btnSmall" href="/api/manager/export/feed_logs.csv">Export CSV</a>
           </div>
         </div>
-
         <div class="cardBody">
           <div class="tableWrap">
             <table>
-              <thead>
-                <tr>
-                  <th>Worker</th>
-                  <th>Pigeon ID</th>
-                  <th>Amount (g)</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Worker</th><th>Pigeon</th><th>Amount</th><th>Plan</th><th>Time</th></tr></thead>
               <tbody id="feedsBody"></tbody>
             </table>
           </div>
-
-          <div class="helper">
-            If you need filtering (date range / worker / pigeon), tell me and I’ll add it.
-          </div>
+          <div class="helper">Tip: filtering can be added later (date range / worker / pigeon).</div>
         </div>
       </div>
 
-      <!-- HEALTH LOGS -->
-      <div class="card" id="section_health" style="display:none;">
+      <!-- HEALTH -->
+      <div class="card" id="sec_health" style="display:none;">
         <div class="cardHead">
           <div>
-            <h2>Health Reports <span class="pill">Full history</span></h2>
+            <h2>Health Reports <span class="pill">History</span></h2>
             <div class="sub">All health issues submitted by workers.</div>
           </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a class="btn btnSmall" href="/api/manager/export/health_reports.csv">Export CSV</a>
+          </div>
         </div>
-
         <div class="cardBody">
           <div class="tableWrap">
             <table>
-              <thead>
-                <tr>
-                  <th>Worker</th>
-                  <th>Pigeon ID</th>
-                  <th>Issue</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Worker</th><th>Pigeon</th><th>Issue</th><th>Advice</th><th>Severity</th><th>Time</th></tr></thead>
               <tbody id="healthBody"></tbody>
             </table>
           </div>
-          <div class="helper">
-            Consider adding severity tags later (low/medium/high) based on rules.
-          </div>
+          <div class="helper">Critical/warning reports also appear in Notifications.</div>
         </div>
       </div>
 
       <!-- PIGEONS -->
-      <div class="card" id="section_pigeons" style="display:none;">
+      <div class="card" id="sec_pigeons" style="display:none;">
         <div class="cardHead">
           <div>
-            <h2>Pigeons <span class="pill">Guidance source</span></h2>
-            <div class="sub">Add pigeons and define feeding guidance workers will see.</div>
+            <h2>Pigeons <span class="pill">Profiles + Guidance</span></h2>
+            <div class="sub">Add pigeons, feeding grams, and guidance workers will see.</div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a class="btn btnSmall" href="/api/manager/export/pigeons.csv">Export CSV</a>
           </div>
         </div>
 
@@ -505,32 +352,52 @@
               </div>
               <div class="cardBody">
                 <div class="helper" style="margin-top:0;">
-                  Use <b>Code</b> like “Pigeon 1” / “Pigeon 2”… (this is what workers will click).
+                  Use <b>Code</b> like “Pigeon 1” (this is what workers click).
                 </div>
+
                 <div class="formRow" style="margin-top:10px;">
                   <input id="pCode" placeholder="Code (e.g. Pigeon 1)">
                   <input id="pName" placeholder="Name (optional)">
                 </div>
+
                 <div class="formRow">
-                  <input id="pMorning" type="number" placeholder="Morning grams (e.g. 25)">
-                  <input id="pEvening" type="number" placeholder="Evening grams (e.g. 25)">
-                </div>
-                <textarea id="pGuidance" placeholder="Guidance (one rule per line)
-Example:
-Feed 25g morning and 25g evening
-Provide fresh water always
-If not eating, isolate and report"></textarea>
-
-                <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
-                  <button class="btn btnPrimary" onclick="savePigeon()">Save Pigeon</button>
-                  <button class="btn" onclick="clearPigeonForm()">Clear</button>
+                  <input id="pSex" placeholder="Sex (M/F/Unknown)">
+                  <input id="pBreed" placeholder="Breed (optional)">
                 </div>
 
+                <div class="formRow">
+                  <input id="pColor" placeholder="Color (optional)">
+                  <input id="pDob" type="date" placeholder="DOB">
+                </div>
+
+                <div class="formRow">
+                  <input id="pStatus" placeholder="Status (active/sick/breeding/retired)">
+                  <input id="pLoft" placeholder="Loft section (optional)">
+                </div>
+
+                <div class="formRow">
+                  <input id="pPair" placeholder="Pair code (optional)">
+                  <select id="pDiet">
+                    <option value="standard">standard</option>
+                    <option value="race">race</option>
+                    <option value="breeding">breeding</option>
+                    <option value="chick">chick</option>
+                  </select>
+                </div>
+
+                <div class="formRow">
+                  <input id="pMorning" type="number" placeholder="Morning base grams (e.g. 25)">
+                  <input id="pEvening" type="number" placeholder="Evening base grams (e.g. 25)">
+                </div>
+
+                <textarea id="pGuidance" placeholder="Per-pigeon guidance (one rule per line)"></textarea>
+                <textarea id="pNotes" placeholder="Notes (optional)"></textarea>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+                  <button class="btn btnPrimary" onclick="savePigeon()">Save</button>
+                  <button class="btn" onclick="clearPigeon()">Clear</button>
+                </div>
                 <div class="helper" id="pigeonMsg" style="display:none;"></div>
-
-                <div class="helper" style="margin-top:10px;">
-                  When you save here, workers automatically see the updated guidance in their Control Panel.
-                </div>
               </div>
             </div>
 
@@ -541,20 +408,11 @@ If not eating, isolate and report"></textarea>
               <div class="cardBody">
                 <div class="tableWrap">
                   <table>
-                    <thead>
-                      <tr>
-                        <th>Code</th>
-                        <th>Morning</th>
-                        <th>Evening</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
+                    <thead><tr><th>Code</th><th>Status</th><th>Morning</th><th>Evening</th><th>Action</th></tr></thead>
                     <tbody id="pigeonsBody"></tbody>
                   </table>
                 </div>
-                <div class="helper">
-                  Use <b>Edit</b> to load details into the form and update guidance.
-                </div>
+                <div class="helper">Edit loads the pigeon into the form. Delete removes it.</div>
               </div>
             </div>
           </div>
@@ -562,14 +420,16 @@ If not eating, isolate and report"></textarea>
       </div>
 
       <!-- RACES -->
-      <div class="card" id="section_races" style="display:none;">
+      <div class="card" id="sec_races" style="display:none;">
         <div class="cardHead">
           <div>
-            <h2>Races <span class="pill">Upcoming & done</span></h2>
-            <div class="sub">Track race schedule and results notes.</div>
+            <h2>Races <span class="pill">Upcoming & Done</span></h2>
+            <div class="sub">Races automatically adjust feeding plan as they approach.</div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a class="btn btnSmall" href="/api/manager/export/races.csv">Export CSV</a>
           </div>
         </div>
-
         <div class="cardBody">
           <div class="twoCol">
             <div class="card" style="box-shadow:none;background:rgba(255,255,255,0.06);">
@@ -578,19 +438,21 @@ If not eating, isolate and report"></textarea>
               </div>
               <div class="cardBody">
                 <div class="formRow">
-                  <input id="rTitle" placeholder="Race title (e.g. Cape Town Sprint)">
-                  <input id="rLocation" placeholder="Location (optional)">
+                  <input id="rTitle" placeholder="Race title">
+                  <input id="rLocation" placeholder="Location">
                 </div>
                 <div class="formRow">
                   <input id="rDate" type="date">
                   <select id="rStatus">
-                    <option value="upcoming">Upcoming</option>
-                    <option value="done">Done</option>
+                    <option value="upcoming">upcoming</option>
+                    <option value="done">done</option>
                   </select>
                 </div>
-                <textarea id="rNotes" placeholder="Notes (optional)"></textarea>
-
-                <button class="btn btnPrimary" style="width:100%;margin-top:10px;" onclick="addRace()">Add Race</button>
+                <div class="formRow">
+                  <input id="rDistance" type="number" placeholder="Distance (km)">
+                  <input id="rNotes" placeholder="Notes (optional)">
+                </div>
+                <button class="btn btnPrimary" style="width:100%" onclick="addRace()">Add Race</button>
                 <div class="helper" id="raceMsg" style="display:none;"></div>
               </div>
             </div>
@@ -602,30 +464,160 @@ If not eating, isolate and report"></textarea>
               <div class="cardBody">
                 <div class="tableWrap">
                   <table>
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Title</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
+                    <thead><tr><th>Date</th><th>Title</th><th>Status</th><th>Action</th></tr></thead>
                     <tbody id="racesBody"></tbody>
                   </table>
                 </div>
-                <div class="helper">You can add edit later if needed. For now: add/remove.</div>
+                <div class="helper">Add/edit can be expanded later to include race entries and results.</div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-    </div><!-- grid -->
+      <!-- GUIDANCE -->
+      <div class="card" id="sec_guidance" style="display:none;">
+        <div class="cardHead">
+          <div>
+            <h2>Guidance Library <span class="pill">Guiding Book</span></h2>
+            <div class="sub">Create guidance articles (breeding/handling/race/newborn/etc.)</div>
+          </div>
+        </div>
 
-  </div><!-- wrap -->
+        <div class="cardBody">
+          <div class="twoCol">
+            <div class="card" style="box-shadow:none;background:rgba(255,255,255,0.06);">
+              <div class="cardHead" style="border-bottom:none;">
+                <h2>Add / Update Article</h2>
+              </div>
+              <div class="cardBody">
+                <div class="formRow">
+                  <select id="gCategory">
+                    <option value="feeding">feeding</option>
+                    <option value="breeding">breeding</option>
+                    <option value="handling">handling</option>
+                    <option value="race">race</option>
+                    <option value="newborn">newborn</option>
+                    <option value="health">health</option>
+                  </select>
+                  <select id="gSeason">
+                    <option value="all">all</option>
+                    <option value="summer">summer</option>
+                    <option value="winter">winter</option>
+                    <option value="rain">rain</option>
+                    <option value="race_prep">race_prep</option>
+                    <option value="race_day">race_day</option>
+                    <option value="post_race">post_race</option>
+                  </select>
+                </div>
+
+                <div class="formRow">
+                  <input id="gTitle" placeholder="Title">
+                  <input id="gPriority" type="number" placeholder="Priority (1 high - 5 low)">
+                </div>
+
+                <textarea id="gContent" placeholder="Content (one rule per line)"></textarea>
+
+                <div class="formRow">
+                  <select id="gActive">
+                    <option value="1">Active</option>
+                    <option value="0">Inactive</option>
+                  </select>
+                  <input id="gId" placeholder="Editing ID (auto)" disabled>
+                </div>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                  <button class="btn btnPrimary" onclick="saveGuidance()">Save</button>
+                  <button class="btn" onclick="clearGuidance()">Clear</button>
+                </div>
+
+                <div class="helper" id="gMsg" style="display:none;"></div>
+              </div>
+            </div>
+
+            <div class="card" style="box-shadow:none;background:rgba(255,255,255,0.06);">
+              <div class="cardHead" style="border-bottom:none;">
+                <h2>Articles</h2>
+              </div>
+              <div class="cardBody">
+                <div class="tableWrap">
+                  <table>
+                    <thead><tr><th>ID</th><th>Category</th><th>Title</th><th>Active</th><th>Action</th></tr></thead>
+                    <tbody id="guidanceBody"></tbody>
+                  </table>
+                </div>
+                <div class="helper">Workers see active articles in their Guidance Library.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div class="card" id="sec_notifs" style="display:none;">
+        <div class="cardHead">
+          <div>
+            <h2>Notifications <span class="pill">Manager</span></h2>
+            <div class="sub">Critical health reports & system updates.</div>
+          </div>
+        </div>
+        <div class="cardBody">
+          <div class="tableWrap">
+            <table>
+              <thead><tr><th>ID</th><th>Severity</th><th>Title</th><th>Message</th><th>Time</th><th>Action</th></tr></thead>
+              <tbody id="notifsBody"></tbody>
+            </table>
+          </div>
+          <div class="helper">Resolve a notification after handling it.</div>
+        </div>
+      </div>
+
+      <!-- REPORTS -->
+      <div class="card" id="sec_reports" style="display:none;">
+        <div class="cardHead">
+          <div>
+            <h2>Reports <span class="pill">Summary + Exports</span></h2>
+            <div class="sub">Quick totals and export data.</div>
+          </div>
+        </div>
+        <div class="cardBody">
+          <div class="twoCol">
+            <div class="card" style="box-shadow:none;background:rgba(255,255,255,0.06);">
+              <div class="cardHead" style="border-bottom:none;">
+                <h2>Quick Summary</h2>
+              </div>
+              <div class="cardBody">
+                <div class="helper" id="summaryBox">Loading…</div>
+                <button class="btn btnPrimary" style="width:100%;margin-top:10px;" onclick="loadSummary()">Refresh Summary</button>
+              </div>
+            </div>
+
+            <div class="card" style="box-shadow:none;background:rgba(255,255,255,0.06);">
+              <div class="cardHead" style="border-bottom:none;">
+                <h2>Export</h2>
+              </div>
+              <div class="cardBody">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                  <a class="btn btnSmall" href="/api/manager/export/feed_logs.csv">Feeding Logs CSV</a>
+                  <a class="btn btnSmall" href="/api/manager/export/health_reports.csv">Health Reports CSV</a>
+                  <a class="btn btnSmall" href="/api/manager/export/pigeons.csv">Pigeons CSV</a>
+                  <a class="btn btnSmall" href="/api/manager/export/races.csv">Races CSV</a>
+                </div>
+                <div class="helper">Exports download immediately.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="helper">
+            Next upgrades: filters (date range), weekly charts, worker performance, missed feeding detection.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
 
 <script>
-  // Helpers
   function toggleSidebar(open){
     const sb = document.getElementById("sidebar");
     const bd = document.getElementById("sidebarBackdrop");
@@ -639,31 +631,25 @@ If not eating, isolate and report"></textarea>
   }
 
   function setActiveNav(key){
-    ["Workers","Feeds","Health","Pigeons","Races"].forEach(k=>{
-      const el = document.getElementById("nav"+k);
+    const ids = ["Workers","Feeds","Health","Pigeons","Races","Guidance","Notifs","Reports"];
+    ids.forEach(x=>{
+      const el = document.getElementById("nav"+x);
       if(!el) return;
-      el.classList.toggle("active", k.toLowerCase() === key);
+      el.classList.toggle("active", x.toLowerCase()===key);
     });
   }
 
   function showSection(key){
-    const map = ["workers","feeds","health","pigeons","races"];
-    map.forEach(k=>{
-      const el = document.getElementById("section_"+k);
-      if(el) el.style.display = (k === key) ? "" : "none";
+    const keys = ["workers","feeds","health","pigeons","races","guidance","notifs","reports"];
+    keys.forEach(k=>{
+      const el = document.getElementById("sec_"+k);
+      if(el) el.style.display = (k===key) ? "" : "none";
     });
-
-    document.getElementById("sectionHint").innerText =
-      key === "workers" ? "Workers" :
-      key === "feeds" ? "Feeding Logs" :
-      key === "health" ? "Health Reports" :
-      key === "pigeons" ? "Pigeons" :
-      key === "races" ? "Races" : "Manager";
-  }
-
-  async function logout(){
-    await fetch("/logout", { method:"POST", credentials:"include" });
-    window.location = "/";
+    const pretty = {
+      workers:"Workers", feeds:"Feeding Logs", health:"Health Reports", pigeons:"Pigeons",
+      races:"Races", guidance:"Guidance", notifs:"Notifications", reports:"Reports"
+    };
+    document.getElementById("sectionHint").innerText = pretty[key] || "Manager";
   }
 
   function go(key){
@@ -673,6 +659,11 @@ If not eating, isolate and report"></textarea>
     refreshCurrent();
   }
 
+  async function logout(){
+    await fetch("/logout", { method:"POST", credentials:"include" });
+    window.location = "/";
+  }
+
   function showMsg(id, text){
     const el = document.getElementById(id);
     if(!el) return;
@@ -680,15 +671,13 @@ If not eating, isolate and report"></textarea>
     el.innerText = text;
   }
 
-  // ===== Workers =====
+  // Workers
   async function loadWorkers(){
     const res = await fetch("/api/manager/workers", { credentials:"include" });
     if(!res.ok) return;
     const rows = await res.json();
-
     const body = document.getElementById("workersBody");
     body.innerHTML = rows.length ? "" : `<tr><td colspan="3" style="color:rgba(255,255,255,0.7)">No workers yet.</td></tr>`;
-
     rows.forEach(w=>{
       const tr = document.createElement("tr");
       tr.innerHTML = `
@@ -702,147 +691,162 @@ If not eating, isolate and report"></textarea>
 
   async function addWorker(){
     const name = document.getElementById("wName").value.trim();
-    const pin  = document.getElementById("wPin").value.trim();
-    if(!name || !pin) return showMsg("workerMsg", "Please enter worker name and PIN.");
-
-    const res = await fetch("/api/manager/workers",{
+    const pin = document.getElementById("wPin").value.trim();
+    if(!name || !pin) return showMsg("workerMsg","Please fill name and PIN.");
+    const res = await fetch("/api/manager/workers", {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       credentials:"include",
       body: JSON.stringify({ name, pin })
     });
-
-    const text = await res.text();
-    if(!res.ok) return showMsg("workerMsg", "Add worker failed: " + text);
-
-    showMsg("workerMsg", "Worker added.");
+    const t = await res.text();
+    if(!res.ok) return showMsg("workerMsg", "Failed: " + t);
+    showMsg("workerMsg","Worker added.");
     document.getElementById("wName").value="";
     document.getElementById("wPin").value="";
     loadWorkers();
   }
 
   async function deleteWorker(id){
-    if(!confirm("Delete worker ID " + id + "?")) return;
-    const res = await fetch("/api/manager/workers/" + id, { method:"DELETE", credentials:"include" });
+    if(!confirm("Delete worker ID "+id+"?")) return;
+    const res = await fetch("/api/manager/workers/"+id, { method:"DELETE", credentials:"include" });
     if(!res.ok) return alert("Delete failed.");
     loadWorkers();
   }
 
-  // ===== Feeding Logs =====
+  // Feeding logs
   async function loadFeeds(){
     const res = await fetch("/api/manager/feed-logs", { credentials:"include" });
     if(!res.ok) return;
     const rows = await res.json();
-
     const body = document.getElementById("feedsBody");
-    body.innerHTML = rows.length ? "" : `<tr><td colspan="4" style="color:rgba(255,255,255,0.7)">No feeding logs yet.</td></tr>`;
-
+    body.innerHTML = rows.length ? "" : `<tr><td colspan="5" style="color:rgba(255,255,255,0.7)">No feed logs yet.</td></tr>`;
     rows.forEach(r=>{
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${escapeHtml(r.worker || "")}</td>
-        <td>${escapeHtml(r.pigeonId || "")}</td>
-        <td>${escapeHtml(r.amount || "")}</td>
-        <td>${escapeHtml(r.time || "")}</td>
+        <td>${escapeHtml(r.worker||"")}</td>
+        <td>${escapeHtml(r.pigeonId||"")}</td>
+        <td>${escapeHtml(r.amount||"")}</td>
+        <td>${escapeHtml(r.plan_name||r.plan_name||r.plan||r.plan_name||r.plan_name||r.plan||r.plan_name||r.plan_name||r.plan||r.plan||r.plan_name||r.plan_name||r.plan||r.plan_name||r.plan||r.plan_name||r.plan_name||r.plan||r.plan_name||r.plan||r.plan_name||r.plan_name||r.plan||r.plan_name||r.plan||r.plan_name||r.plan_name||r.plan||r.plan_name||r.plan||r.plan_name||r.plan_name||r.plan||r.plan||r.plan_name||r.plan_name||r.plan||r.plan_name||r.plan||r.plan_name||r.plan_name||r.plan||r.plan_name||r.plan||r.plan_name||r.plan_name||r.plan||"" )}</td>
+        <td>${escapeHtml(r.time||"")}</td>
       `;
+      // if plan field name differs, server returns plan_name; keep safe:
+      tr.children[3].innerText = r.plan_name || r.plan || "";
       body.appendChild(tr);
     });
   }
 
-  // ===== Health Logs =====
+  // Health logs
   async function loadHealth(){
     const res = await fetch("/api/manager/health-logs", { credentials:"include" });
     if(!res.ok) return;
     const rows = await res.json();
-
     const body = document.getElementById("healthBody");
-    body.innerHTML = rows.length ? "" : `<tr><td colspan="4" style="color:rgba(255,255,255,0.7)">No health reports yet.</td></tr>`;
-
+    body.innerHTML = rows.length ? "" : `<tr><td colspan="6" style="color:rgba(255,255,255,0.7)">No health reports yet.</td></tr>`;
     rows.forEach(r=>{
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${escapeHtml(r.worker || "")}</td>
-        <td>${escapeHtml(r.pigeon_id || "")}</td>
-        <td>${escapeHtml(r.issue || "")}</td>
-        <td>${escapeHtml(r.time || "")}</td>
+        <td>${escapeHtml(r.worker||"")}</td>
+        <td>${escapeHtml(r.pigeon_id||"")}</td>
+        <td>${escapeHtml(r.issue||"")}</td>
+        <td>${escapeHtml(r.advice||"")}</td>
+        <td>${escapeHtml(r.severity||"")}</td>
+        <td>${escapeHtml(r.time||"")}</td>
       `;
       body.appendChild(tr);
     });
   }
 
-  // ===== Pigeons =====
-  let pigeonsCache = [];
-  let editingPigeonId = null;
+  // Pigeons
+  let editingCode = null;
 
   async function loadPigeons(){
     const res = await fetch("/api/manager/pigeons", { credentials:"include" });
     if(!res.ok) return;
     const rows = await res.json();
-    pigeonsCache = rows;
-
     const body = document.getElementById("pigeonsBody");
-    body.innerHTML = rows.length ? "" : `<tr><td colspan="4" style="color:rgba(255,255,255,0.7)">No pigeons added yet.</td></tr>`;
-
+    body.innerHTML = rows.length ? "" : `<tr><td colspan="5" style="color:rgba(255,255,255,0.7)">No pigeons yet.</td></tr>`;
     rows.forEach(p=>{
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${escapeHtml(p.code || "")}</td>
-        <td>${escapeHtml(String(p.feed_morning_grams ?? ""))}</td>
-        <td>${escapeHtml(String(p.feed_evening_grams ?? ""))}</td>
+        <td>${escapeHtml(p.code||"")}</td>
+        <td>${escapeHtml(p.status||"")}</td>
+        <td>${escapeHtml(String(p.morning_base_grams ?? ""))}</td>
+        <td>${escapeHtml(String(p.evening_base_grams ?? ""))}</td>
         <td style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btnSmall" onclick="editPigeon(${p.id})">Edit</button>
-          <button class="btn btnDanger btnSmall" onclick="deletePigeon(${p.id})">Delete</button>
+          <button class="btn btnSmall" onclick="editPigeon('${escapeAttr(p.code)}')">Edit</button>
+          <button class="btn btnDanger btnSmall" onclick="deletePigeon('${escapeAttr(p.code)}')">Delete</button>
         </td>
       `;
       body.appendChild(tr);
     });
+    pigeonsCache = rows;
   }
 
-  function clearPigeonForm(){
-    editingPigeonId = null;
-    document.getElementById("pCode").value = "";
-    document.getElementById("pName").value = "";
-    document.getElementById("pMorning").value = "";
-    document.getElementById("pEvening").value = "";
-    document.getElementById("pGuidance").value = "";
-    showMsg("pigeonMsg", "Form cleared.");
+  let pigeonsCache = [];
+
+  function clearPigeon(){
+    editingCode = null;
+    ["pCode","pName","pSex","pBreed","pColor","pDob","pStatus","pLoft","pPair","pDiet","pMorning","pEvening","pGuidance","pNotes"].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.value = "";
+    });
+    document.getElementById("pDiet").value="standard";
+    showMsg("pigeonMsg","Cleared.");
   }
 
-  function editPigeon(id){
-    const p = pigeonsCache.find(x=>x.id===id);
+  function editPigeon(code){
+    const p = pigeonsCache.find(x=>x.code===code);
     if(!p) return;
+    editingCode = code;
 
-    editingPigeonId = id;
     document.getElementById("pCode").value = p.code || "";
     document.getElementById("pName").value = p.name || "";
-    document.getElementById("pMorning").value = p.feed_morning_grams ?? "";
-    document.getElementById("pEvening").value = p.feed_evening_grams ?? "";
+    document.getElementById("pSex").value = p.sex || "";
+    document.getElementById("pBreed").value = p.breed || "";
+    document.getElementById("pColor").value = p.color || "";
+    document.getElementById("pDob").value = p.dob || "";
+    document.getElementById("pStatus").value = p.status || "active";
+    document.getElementById("pLoft").value = p.loft_section || "";
+    document.getElementById("pPair").value = p.pair_code || "";
+    document.getElementById("pDiet").value = p.diet_type || "standard";
+    document.getElementById("pMorning").value = p.morning_base_grams ?? "";
+    document.getElementById("pEvening").value = p.evening_base_grams ?? "";
     document.getElementById("pGuidance").value = p.guidance || "";
-    showMsg("pigeonMsg", "Editing " + (p.code || "pigeon") + ". Click Save Pigeon to update.");
+    document.getElementById("pNotes").value = p.notes || "";
+
+    showMsg("pigeonMsg","Editing "+code+". Click Save to update.");
   }
 
   async function savePigeon(){
-    const code = document.getElementById("pCode").value.trim();
-    const name = document.getElementById("pName").value.trim();
-    const feed_morning_grams = numberOrNull(document.getElementById("pMorning").value.trim());
-    const feed_evening_grams = numberOrNull(document.getElementById("pEvening").value.trim());
-    const guidance = document.getElementById("pGuidance").value;
+    const payload = {
+      code: document.getElementById("pCode").value.trim(),
+      name: document.getElementById("pName").value.trim(),
+      sex: document.getElementById("pSex").value.trim(),
+      breed: document.getElementById("pBreed").value.trim(),
+      color: document.getElementById("pColor").value.trim(),
+      dob: document.getElementById("pDob").value,
+      status: document.getElementById("pStatus").value.trim() || "active",
+      loft_section: document.getElementById("pLoft").value.trim(),
+      pair_code: document.getElementById("pPair").value.trim(),
+      diet_type: document.getElementById("pDiet").value,
+      morning_base_grams: numberOrNull(document.getElementById("pMorning").value.trim()),
+      evening_base_grams: numberOrNull(document.getElementById("pEvening").value.trim()),
+      guidance: document.getElementById("pGuidance").value,
+      notes: document.getElementById("pNotes").value
+    };
+    if(!payload.code) return showMsg("pigeonMsg","Code required.");
 
-    if(!code) return showMsg("pigeonMsg", "Code is required (e.g. Pigeon 1).");
-
-    const payload = { code, name, feed_morning_grams, feed_evening_grams, guidance };
-
-    if(editingPigeonId){
-      const res = await fetch("/api/manager/pigeons/" + editingPigeonId, {
+    if(editingCode){
+      const res = await fetch("/api/manager/pigeons/"+encodeURIComponent(editingCode), {
         method:"PUT",
         headers:{ "Content-Type":"application/json" },
         credentials:"include",
         body: JSON.stringify(payload)
       });
-      const text = await res.text();
-      if(!res.ok) return showMsg("pigeonMsg", "Update failed: " + text);
-
-      showMsg("pigeonMsg", "Pigeon updated.");
+      const t = await res.text();
+      if(!res.ok) return showMsg("pigeonMsg","Update failed: "+t);
+      showMsg("pigeonMsg","Pigeon updated.");
     }else{
       const res = await fetch("/api/manager/pigeons", {
         method:"POST",
@@ -850,39 +854,35 @@ If not eating, isolate and report"></textarea>
         credentials:"include",
         body: JSON.stringify(payload)
       });
-      const text = await res.text();
-      if(!res.ok) return showMsg("pigeonMsg", "Add failed: " + text);
-
-      showMsg("pigeonMsg", "Pigeon added.");
+      const t = await res.text();
+      if(!res.ok) return showMsg("pigeonMsg","Add failed: "+t);
+      showMsg("pigeonMsg","Pigeon added.");
     }
 
-    await loadPigeons();
-  }
-
-  async function deletePigeon(id){
-    if(!confirm("Delete this pigeon?")) return;
-    const res = await fetch("/api/manager/pigeons/" + id, { method:"DELETE", credentials:"include" });
-    if(!res.ok) return alert("Delete failed.");
-    if(editingPigeonId === id) clearPigeonForm();
     loadPigeons();
   }
 
-  // ===== Races =====
+  async function deletePigeon(code){
+    if(!confirm("Delete "+code+"?")) return;
+    const res = await fetch("/api/manager/pigeons/"+encodeURIComponent(code), { method:"DELETE", credentials:"include" });
+    if(!res.ok) return alert("Delete failed.");
+    if(editingCode===code) clearPigeon();
+    loadPigeons();
+  }
+
+  // Races
   async function loadRaces(){
     const res = await fetch("/api/manager/races", { credentials:"include" });
     if(!res.ok) return;
     const rows = await res.json();
-
     const body = document.getElementById("racesBody");
-    body.innerHTML = rows.length ? "" : `<tr><td colspan="4" style="color:rgba(255,255,255,0.7)">No races added yet.</td></tr>`;
-
+    body.innerHTML = rows.length ? "" : `<tr><td colspan="4" style="color:rgba(255,255,255,0.7)">No races yet.</td></tr>`;
     rows.forEach(r=>{
-      const date = (r.race_date || "").slice(0,10);
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${escapeHtml(date)}</td>
-        <td>${escapeHtml(r.title || "")}</td>
-        <td>${escapeHtml(r.status || "")}</td>
+        <td>${escapeHtml((r.race_date||"").slice(0,10))}</td>
+        <td>${escapeHtml(r.title||"")}</td>
+        <td>${escapeHtml(r.status||"")}</td>
         <td><button class="btn btnDanger btnSmall" onclick="deleteRace(${r.id})">Delete</button></td>
       `;
       body.appendChild(tr);
@@ -890,41 +890,175 @@ If not eating, isolate and report"></textarea>
   }
 
   async function addRace(){
-    const title = document.getElementById("rTitle").value.trim();
-    const location = document.getElementById("rLocation").value.trim();
-    const race_date = document.getElementById("rDate").value;
-    const status = document.getElementById("rStatus").value;
-    const notes = document.getElementById("rNotes").value;
-
-    if(!title || !race_date) return showMsg("raceMsg", "Title and date are required.");
+    const payload = {
+      title: document.getElementById("rTitle").value.trim(),
+      location: document.getElementById("rLocation").value.trim(),
+      race_date: document.getElementById("rDate").value,
+      status: document.getElementById("rStatus").value,
+      distance_km: numberOrNull(document.getElementById("rDistance").value.trim()),
+      notes: document.getElementById("rNotes").value.trim(),
+    };
+    if(!payload.title || !payload.race_date) return showMsg("raceMsg","Title and date required.");
 
     const res = await fetch("/api/manager/races", {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       credentials:"include",
-      body: JSON.stringify({ title, location, race_date, status, notes })
+      body: JSON.stringify(payload)
     });
+    const t = await res.text();
+    if(!res.ok) return showMsg("raceMsg","Failed: "+t);
+    showMsg("raceMsg","Race added.");
 
-    const text = await res.text();
-    if(!res.ok) return showMsg("raceMsg", "Add race failed: " + text);
-
-    showMsg("raceMsg", "Race added.");
-    document.getElementById("rTitle").value="";
-    document.getElementById("rLocation").value="";
-    document.getElementById("rDate").value="";
+    ["rTitle","rLocation","rDate","rDistance","rNotes"].forEach(id=>document.getElementById(id).value="");
     document.getElementById("rStatus").value="upcoming";
-    document.getElementById("rNotes").value="";
     loadRaces();
   }
 
   async function deleteRace(id){
-    if(!confirm("Delete this race?")) return;
-    const res = await fetch("/api/manager/races/" + id, { method:"DELETE", credentials:"include" });
+    if(!confirm("Delete race "+id+"?")) return;
+    const res = await fetch("/api/manager/races/"+id, { method:"DELETE", credentials:"include" });
     if(!res.ok) return alert("Delete failed.");
     loadRaces();
   }
 
-  // Refresh current section
+  // Guidance
+  let guidanceCache = [];
+  let editingGuidanceId = null;
+
+  async function loadGuidance(){
+    const res = await fetch("/api/manager/guidance", { credentials:"include" });
+    if(!res.ok) return;
+    const rows = await res.json();
+    guidanceCache = rows;
+
+    const body = document.getElementById("guidanceBody");
+    body.innerHTML = rows.length ? "" : `<tr><td colspan="5" style="color:rgba(255,255,255,0.7)">No guidance articles yet.</td></tr>`;
+    rows.forEach(a=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${a.id}</td>
+        <td>${escapeHtml(a.category||"")}</td>
+        <td>${escapeHtml(a.title||"")}</td>
+        <td>${a.active ? "1" : "0"}</td>
+        <td style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btnSmall" onclick="editGuidance(${a.id})">Edit</button>
+          <button class="btn btnDanger btnSmall" onclick="deleteGuidance(${a.id})">Delete</button>
+        </td>
+      `;
+      body.appendChild(tr);
+    });
+  }
+
+  function clearGuidance(){
+    editingGuidanceId = null;
+    document.getElementById("gId").value = "";
+    document.getElementById("gTitle").value = "";
+    document.getElementById("gContent").value = "";
+    document.getElementById("gPriority").value = "3";
+    document.getElementById("gSeason").value = "all";
+    document.getElementById("gCategory").value = "feeding";
+    document.getElementById("gActive").value = "1";
+    showMsg("gMsg","Cleared.");
+  }
+
+  function editGuidance(id){
+    const a = guidanceCache.find(x=>x.id===id);
+    if(!a) return;
+    editingGuidanceId = id;
+    document.getElementById("gId").value = id;
+    document.getElementById("gCategory").value = a.category || "feeding";
+    document.getElementById("gSeason").value = a.season || "all";
+    document.getElementById("gTitle").value = a.title || "";
+    document.getElementById("gContent").value = a.content || "";
+    document.getElementById("gPriority").value = a.priority ?? 3;
+    document.getElementById("gActive").value = String(a.active ?? 1);
+    showMsg("gMsg","Editing article ID "+id+". Save to update.");
+  }
+
+  async function saveGuidance(){
+    const payload = {
+      category: document.getElementById("gCategory").value,
+      season: document.getElementById("gSeason").value,
+      title: document.getElementById("gTitle").value.trim(),
+      content: document.getElementById("gContent").value,
+      priority: numberOrNull(document.getElementById("gPriority").value.trim()) ?? 3,
+      active: parseInt(document.getElementById("gActive").value, 10)
+    };
+    if(!payload.title || !payload.content) return showMsg("gMsg","Title and content required.");
+
+    if(editingGuidanceId){
+      const res = await fetch("/api/manager/guidance/"+editingGuidanceId, {
+        method:"PUT",
+        headers:{ "Content-Type":"application/json" },
+        credentials:"include",
+        body: JSON.stringify(payload)
+      });
+      const t = await res.text();
+      if(!res.ok) return showMsg("gMsg","Update failed: "+t);
+      showMsg("gMsg","Updated.");
+    }else{
+      const res = await fetch("/api/manager/guidance", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        credentials:"include",
+        body: JSON.stringify(payload)
+      });
+      const t = await res.text();
+      if(!res.ok) return showMsg("gMsg","Add failed: "+t);
+      showMsg("gMsg","Added.");
+    }
+    loadGuidance();
+  }
+
+  async function deleteGuidance(id){
+    if(!confirm("Delete guidance article "+id+"?")) return;
+    const res = await fetch("/api/manager/guidance/"+id, { method:"DELETE", credentials:"include" });
+    if(!res.ok) return alert("Delete failed.");
+    if(editingGuidanceId===id) clearGuidance();
+    loadGuidance();
+  }
+
+  // Notifications
+  async function loadNotifs(){
+    const res = await fetch("/api/manager/notifications?resolved=0", { credentials:"include" });
+    if(!res.ok) return;
+    const rows = await res.json();
+    const body = document.getElementById("notifsBody");
+    body.innerHTML = rows.length ? "" : `<tr><td colspan="6" style="color:rgba(255,255,255,0.7)">No notifications.</td></tr>`;
+    rows.forEach(n=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${n.id}</td>
+        <td>${escapeHtml(n.severity||"")}</td>
+        <td>${escapeHtml(n.title||"")}</td>
+        <td>${escapeHtml(n.message||"")}</td>
+        <td>${escapeHtml(n.created_at||"")}</td>
+        <td><button class="btn btnPrimary btnSmall" onclick="resolveNotif(${n.id})">Resolve</button></td>
+      `;
+      body.appendChild(tr);
+    });
+  }
+
+  async function resolveNotif(id){
+    const res = await fetch("/api/manager/notifications/"+id+"/resolve", { method:"POST", credentials:"include" });
+    if(!res.ok) return alert("Failed to resolve.");
+    loadNotifs();
+  }
+
+  // Reports
+  async function loadSummary(){
+    const res = await fetch("/api/manager/reports/summary", { credentials:"include" });
+    if(!res.ok) return;
+    const s = await res.json();
+    document.getElementById("summaryBox").innerHTML = `
+      Total feed logs: <b>${s.total_feeds}</b><br>
+      Total health reports: <b>${s.total_health_reports}</b><br>
+      Total pigeons: <b>${s.total_pigeons}</b><br>
+      Upcoming races: <b>${s.upcoming_races}</b>
+    `;
+  }
+
   function refreshCurrent(){
     const hint = document.getElementById("sectionHint").innerText.toLowerCase();
     if(hint.includes("workers")) loadWorkers();
@@ -932,9 +1066,11 @@ If not eating, isolate and report"></textarea>
     else if(hint.includes("health")) loadHealth();
     else if(hint.includes("pigeons")) loadPigeons();
     else if(hint.includes("races")) loadRaces();
+    else if(hint.includes("guidance")) loadGuidance();
+    else if(hint.includes("notifications")) loadNotifs();
+    else if(hint.includes("reports")) loadSummary();
   }
 
-  // Utils
   function numberOrNull(v){
     if(v === "" || v === null || v === undefined) return null;
     const n = Number(v);
@@ -950,15 +1086,16 @@ If not eating, isolate and report"></textarea>
       .replaceAll('"',"&quot;")
       .replaceAll("'","&#039;");
   }
+  function escapeAttr(str){
+    return String(str ?? "").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+  }
 
   // Init
-  // Default section: Workers
   (function init(){
     setActiveNav("workers");
     showSection("workers");
     loadWorkers();
   })();
 </script>
-
 </body>
 </html>
