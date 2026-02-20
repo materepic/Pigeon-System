@@ -141,6 +141,13 @@ app.get("/manager", requireManager, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "manager.html"));
 });
 
+//worker recent feeding logs//
+app.get("/api/worker/recent-feeds", requireLogin, (req,res)=>{
+  db.all("SELECT worker, pigeonId, amount, time FROM feed_logs ORDER BY id DESC LIMIT 10", [], (err, rows)=>{
+    if(err) return res.status(500).json([]);
+    res.json(rows);
+  });
+});
 
 /* ---------- WORKER ACTIONS ---------- */
 app.post("/feed", requireLogin, (req, res) => {
