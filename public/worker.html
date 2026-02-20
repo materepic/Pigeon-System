@@ -442,58 +442,37 @@
   // No "const API = http://localhost..."
   // Just fetch("/route")
 
-  // Demo per-pigeon rules (you can later replace with “Guiding Book” content)
-  const pigeonGuidance = {
-    "Pigeon 1": {
-      subtitle: "Standard adult feeding",
-      rules: [
-        "Feed 25g in the morning and 25g in the evening.",
-        "Ensure fresh water is available at all times.",
-        "If weather is hot: reduce feed slightly and increase water checks.",
-        "Check droppings and activity after feeding."
-      ]
-    },
-    "Pigeon 2": {
-      subtitle: "High-energy / training pigeon",
-      rules: [
-        "Feed 30g morning and 30g evening.",
-        "Add vitamins twice per week (as per management guide).",
-        "If pigeon is weak: isolate and report immediately."
-      ]
-    },
-    "Pigeon 3": {
-      subtitle: "Breeding / recovery support",
-      rules: [
-        "Feed 20g morning and 25g evening.",
-        "Monitor weight weekly.",
-        "If not eating: check throat/beak and report illness."
-      ]
-    },
-    "Pigeon 4": {
-      subtitle: "Young pigeon (light feeding)",
-      rules: [
-        "Feed 15g morning and 15g evening.",
-        "Keep feeding area clean and dry.",
-        "Avoid overfeeding; observe after 10 minutes."
-      ]
-    },
-    "Pigeon 5": {
-      subtitle: "Sensitive stomach / monitored diet",
-      rules: [
-        "Feed 20g morning and 20g evening.",
-        "Avoid sudden feed changes.",
-        "Report any diarrhea, weakness, or not eating."
-      ]
-    },
-    "Pigeon 6": {
-      subtitle: "General guidance",
-      rules: [
-        "Follow standard schedule and management guide.",
-        "Record every feeding accurately with pigeon ID and grams.",
-        "If the pigeon behaves unusually, submit a health report."
-      ]
+
+ let pigeonGuidance = {};
+
+async function loadPigeonGuidance(){
+  const res = await fetch("/api/worker/pigeons", { credentials:"include" });
+  if(!res.ok){
+    // show friendly message if none
+    pigeonGuidance = {};
+    renderPigeons();
+    return;
+  }
+  const rows = await res.json();
+
+  pigeonGuidance = {};
+  rows.forEach(p=>{
+    const title = p.code || p.name || "Pigeon";
+    const subtitle = `Morning: ${p.feed_morning_grams ?? "-"}g • Evening: ${p.feed_evening_grams ?? "-"}g`;
+    const rules = [];
+
+    if(p.guidance && p.guidance.trim()){
+      // split guidance into bullet points by newline
+      p.guidance.split("\n").map(s=>s.trim()).filter(Boolean).forEach(line=>rules.push(line));
+    } else {
+      rules.push("No guidance set yet. Please follow management guide.");
     }
-  };
+
+    pigeonGuidance[title] = { subtitle, rules };
+  });
+
+  renderPigeons();
+}
 
   // Build pigeon list UI
   function renderPigeons(){
@@ -634,7 +613,7 @@
   }
 
   // Initialize
-  renderPigeons();
+  loadPigeonGuidance();
   loadSchedule();
   loadWeather();
   loadRecentFeeds();

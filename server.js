@@ -64,6 +64,30 @@ db.serialize(() => {
       time TEXT
     )
   `);
+
+  db.run(`
+  CREATE TABLE IF NOT EXISTS pigeons (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT UNIQUE,          -- e.g. "Pigeon 1" or "P001"
+    name TEXT,                 -- optional display name
+    notes TEXT,                -- general notes
+    feed_morning_grams INTEGER,
+    feed_evening_grams INTEGER,
+    guidance TEXT              -- long guidance / rules from management
+  )
+`);
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS races (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT,
+    location TEXT,
+    race_date TEXT,            -- store as ISO string
+    status TEXT,               -- "upcoming" or "done"
+    notes TEXT
+  )
+`);
+
 });
 
 /* ---------- AUTH GUARDS ---------- */
@@ -269,6 +293,102 @@ app.delete("/api/manager/workers/:id", requireManager, (req, res) => {
 // Disable public add-worker route
 app.post("/add-worker", (req, res) => {
   return res.status(403).send("Disabled. Use Manager Dashboard.");
+});
+
+//pigeons CRUD//
+app.get("/api/manager/pigeons", requireManager, (req,res)=>{
+  db.all("SELECT * FROM pigeons ORDER BY id DESC", [], (err, rows)=>{
+    if(err) return res.status(500).json([]);
+    res.json(rows);
+  });
+});
+
+app.post("/api/manager/pigeons", requireManager, (req,res)=>{
+  const { code, name, notes, feed_morning_grams, feed_evening_grams, guidance } = req.body;
+  if(!code) return res.status(400).send("code required");
+
+  db.run(
+    `INSERT INTO pigeons(code,name,notes,feed_morning_grams,feed_evening_grams,guidance)
+     VALUES(?,?,?,?,?,?)`,
+    [code.trim(), name||"", notes||"", feed_morning_grams||null, feed_evening_grams||null, guidance||""],
+    function(err){
+      if(err) return res.status(500).send("DB error (maybe duplicate code)");
+      res.json({status:"ok", id:this.lastID});
+    }
+  );
+});
+
+app.put("/api/manager/pigeons/:id", requireManager, (req,res)=>{
+  const { code, name, notes, feed_morning_grams, feed_evening_grams, guidance } = req.body;
+  db.run(
+    `UPDATE pigeons SET code=?, name=?, notes=?, feed_morning_grams=?, feed_evening_grams=?, guidance=?
+     WHERE id=?`,
+    [code, name||"", notes||"", feed_morning_grams||null, feed_evening_grams||null, guidance||"", req.params.id],
+    (err)=>{
+      if(err) return res.status(500).send("DB error");
+      res.json({status:"ok"});
+    }
+  );
+});
+
+app.delete("/api/manager/pigeons/:id", requireManager, (req,res)=>{
+  db.run("DELETE FROM pigeons WHERE id=?", [req.params.id], (err)=>{
+    if(err) return res.status(500).send("DB error");
+    res.json({status:"ok"});
+  });
+});
+
+//Races CRUD//
+app.get("/api/manager/races", requireManager, (req,res)=>{
+  db.all("SELECT * FROM races ORDER BY race_date ASC", [], (err, rows)=>{
+    if(err) return res.status(500).json([]);
+    res.json(rows);
+  });
+});
+
+app.post("/api/manager/races", requireManager, (req,res)=>{
+  const { title, location, race_date, status, notes } = req.body;
+  if(!title || !race_date) return res.status(400).send("title & race_date required");
+
+  db.run(
+    `INSERT INTO races(title,location,race_date,status,notes) VALUES(?,?,?,?,?)`,
+    [title.trim(), location||"", race_date, status||"upcoming", notes||""],
+    function(err){
+      if(err) return res.status(500).send("DB error");
+      res.json({status:"ok", id:this.lastID});
+    }
+  );
+});
+
+app.put("/api/manager/races/:id", requireManager, (req,res)=>{
+  const { title, location, race_date, status, notes } = req.body;
+  db.run(
+    `UPDATE races SET title=?, location=?, race_date=?, status=?, notes=? WHERE id=?`,
+    [title||"", location||"", race_date||"", status||"upcoming", notes||"", req.params.id],
+    (err)=>{
+      if(err) return res.status(500).send("DB error");
+      res.json({status:"ok"});
+    }
+  );
+});
+
+app.delete("/api/manager/races/:id", requireManager, (req,res)=>{
+  db.run("DELETE FROM races WHERE id=?", [req.params.id], (err)=>{
+    if(err) return res.status(500).send("DB error");
+    res.json({status:"ok"});
+  });
+});
+
+//Worker endpoint(read only)//
+app.get("/api/worker/pigeons", requireLogin, (req,res)=>{
+  db.all(
+    "SELECT code, name, notes, feed_morning_grams, feed_evening_grams, guidance FROM pigeons ORDER BY id ASC",
+    [],
+    (err, rows)=>{
+      if(err) return res.status(500).json([]);
+      res.json(rows);
+    }
+  );
 });
 
 /* ---------- SERVER ---------- */
